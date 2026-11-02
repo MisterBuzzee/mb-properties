@@ -66,16 +66,12 @@ async function openFurnitureCatalog(): Promise<void> {
 }
 
 async function placeFurniture(item: Furniture): Promise<void> {
-  // Simple, reliable placement: spawn in front of the player, persist on server.
   const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
   const heading = GetEntityHeading(cache.ped);
   const rad = (heading * Math.PI) / 180;
   const x = px + Math.sin(rad) * 1.5;
   const y = py + Math.cos(rad) * 1.5;
   const z = pz;
-
-  const ok = await call(EVENTS.buyFurniture, [item.id, x, y, z, heading]);
-  if (!ok) return;
 
   const hash = GetHashKey(item.model);
   RequestModel(hash);
@@ -85,11 +81,59 @@ async function placeFurniture(item: Furniture): Promise<void> {
     tries += 1;
   }
   if (!HasModelLoaded(hash)) return;
-  const obj = CreateObject(hash, x, y, z, false, false, false);
-  trackFurniture(obj);
-  SetEntityHeading(obj, heading);
-  PlaceObjectOnGroundProperly(obj);
+  const preview = CreateObject(hash, x, y, z, false, false, false);
+  SetEntityHeading(preview, heading);
+  PlaceObjectOnGroundProperly(preview);
+
+  // Use object_gizmo's gizmo to position/rotate the prop.
+  let finalCoords = { x, y, z };
+  let finalHeading = heading;
+  let cancelled = false;
+  const gizmo = (globalThis as any).exports?.object_gizmo;
+  if (gizmo && typeof gizmo.useGizmo === "function") {
+    const result = gizmo.useGizmo(preview) as any;
+    if (result) {
+      if (result.cancelled) cancelled = true;
+      const pos = result.position;
+      const rot = result.rotation;
+      if (pos) {
+        finalCoords = { x: pos.x ?? pos[0] ?? x, y: pos.y ?? pos[1] ?? y, z: pos.z ?? pos[2] ?? z };
+      }
+      if (rot) {
+        // rotation may be euler; use heading (z-rotation) if provided
+        if (typeof rot === "number") finalHeading = rot;
+        else if (rot.z !== undefined) finalHeading = rot.z;
+        else if (Array.isArray(rot) && rot.length >= 3) finalHeading = rot[2];
+        else finalHeading = heading;
+      }
+    }
+  } else {
+    // Fallback: keep simple spawn (no gizmo available).
+  }
+
+  DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
+
+  if (cancelled) {
+    notify("Cancelled", "info");
+    return;
+  }
+
+  const ok = await call(EVENTS.buyFurniture, [item.id, finalCoords.x, finalCoords.y, finalCoords.z, finalHeading]);
+  if (!ok) return;
+  const hash2 = GetHashKey(item.model);
+  RequestModel(hash2);
+  let t2 = 0;
+  while (!HasModelLoaded(hash2) && t2 < 100) {
+    await sleep(10);
+    t2 += 1;
+  }
+  if (!HasModelLoaded(hash2)) return;
+  const obj = CreateObject(hash2, finalCoords.x, finalCoords.y, finalCoords.z, false, false, false);
+  trackFurniture(obj);
+  SetEntityHeading(obj, finalHeading);
+  PlaceObjectOnGroundProperly(obj);
+  SetModelAsNoLongerNeeded(hash2);
   notify(`Placed ${item.label}`, "success");
 }
 
