@@ -91,6 +91,7 @@ async function buyFurniture(): Promise<void> {
   const sph = GetEntityHeading(cache.ped);
   const spr = (sph * Math.PI) / 180;
   const preview = CreateObject(hash, spx + Math.sin(spr) * 1.5, spy + Math.cos(spr) * 1.5, spz, false, false, false);
+  PlaceObjectOnGroundProperly(preview);
   SetEntityAlpha(preview, 140, false);
   SetEntityCollision(preview, false, false);
 
