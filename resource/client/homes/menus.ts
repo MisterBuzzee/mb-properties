@@ -98,9 +98,13 @@ async function placeFurniture(item: Furniture): Promise<void> {
       if (res && res[0] === 2) {
         if (res[1]) {
           const c = res[2];
-          currentPoint = { x: c.x, y: c.y, z: c.z };
-        } else {
-          // no hit: keep previous or use fallback in front of camera
+          // Only accept hits in front of the player (avoid behind-player snaps).
+          const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
+          const dx = c.x - px, dy = c.y - py;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 0.5) {
+            currentPoint = { x: c.x, y: c.y, z: c.z };
+          }
         }
         currentRay = null;
       }
@@ -118,24 +122,27 @@ async function placeFurniture(item: Furniture): Promise<void> {
     }
   };
 
+  let zOffset = 0;
+
   while (!confirmed && !cancelled) {
     updateAim();
-    let pt: { x: number; y: number; z: number } | null = currentPoint;
-    if (!pt) {
-      // fallback: in front of player at ground level
-      const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
-      const ph = GetEntityHeading(cache.ped);
-      const pr = (ph * Math.PI) / 180;
-      pt = { x: px + Math.sin(pr) * 2, y: py + Math.cos(pr) * 2, z: pz } as { x: number; y: number; z: number };
-    }
-    if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
+    const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
+    const ph = GetEntityHeading(cache.ped);
+    const pr = (ph * Math.PI) / 180;
+    const fallback = { x: px + Math.sin(pr) * 2, y: py + Math.cos(pr) * 2, z: pz };
+    let pt = currentPoint || fallback;
+    pt = { x: pt.x, y: pt.y, z: pt.z + zOffset };
+    SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
     if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
     if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
+    if (IsControlJustPressed(0, 44)) zOffset += 0.1;   // Q up
+    if (IsControlJustPressed(0, 36)) zOffset -= 0.1;   // Ctrl down
     SetEntityHeading(preview, heading);
     if (IsControlJustPressed(0, 38)) confirmed = true;   // E
     if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
     await sleep(0);
   }
+
 
 
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
