@@ -75,80 +75,72 @@ async function placeFurniture(item: Furniture): Promise<void> {
   }
   if (!HasModelLoaded(hash)) return;
 
-  // The item follows where you look (cursor/camera aim) - it never disappears.
+  // Hide the ped and take control of the item only.
+  SetEntityVisible(cache.ped, false, false);
+  SetEntityAlpha(cache.ped, 0, false);
+
   const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
   const sph = GetEntityHeading(cache.ped);
   const spr = (sph * Math.PI) / 180;
   const preview = CreateObject(hash, spx + Math.sin(spr) * 2, spy + Math.cos(spr) * 2, spz, false, false, false);
-  SetEntityAlpha(preview, 140, false);
+  SetEntityAlpha(preview, 200, false);
   SetEntityCollision(preview, false, false);
+  PlaceObjectOnGroundProperly(preview);
   SetEntityHeading(preview, sph);
 
   let confirmed = false;
   let cancelled = false;
   let heading = sph;
-
-  // Persistent raycast: completes over frames; fallback keeps item visible.
-  let currentRay: number | null = null;
-  let currentPoint: { x: number; y: number; z: number } | null = null;
-
-  const updateAim = (): void => {
-    if (currentRay !== null) {
-      const res = GetShapeTestResult(currentRay) as any;
-      if (res && res[0] === 2) {
-        if (res[1]) {
-          const c = res[2];
-          // Only accept hits in front of the player (avoid behind-player snaps).
-          const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
-          const dx = c.x - px, dy = c.y - py;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 0.5) {
-            currentPoint = { x: c.x, y: c.y, z: c.z };
-          }
-        }
-        currentRay = null;
-      }
-    }
-    if (currentRay === null) {
-      const cam: any = GetGameplayCamCoord();
-      const rot: any = GetGameplayCamRot(2);
-      const rx = (rot.x * Math.PI) / 180;
-      const rz = (rot.z * Math.PI) / 180;
-      const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-      const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-      const dirZ = Math.sin(rx);
-      const dist = 8.0;
-      currentRay = StartShapeTestRay(cam.x, cam.y, cam.z, cam.x + dirX * dist, cam.y + dirY * dist, cam.z + dirZ * dist, 1, cache.ped, 0);
-    }
-  };
-
   let zOffset = 0;
 
   while (!confirmed && !cancelled) {
-    updateAim();
-    const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
-    const ph = GetEntityHeading(cache.ped);
-    const pr = (ph * Math.PI) / 180;
-    const fallback = { x: px + Math.sin(pr) * 2, y: py + Math.cos(pr) * 2, z: pz };
-    let pt = currentPoint || fallback;
-    pt = { x: pt.x, y: pt.y, z: pt.z + zOffset };
-    SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
-    if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
-    if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
-    if (IsControlJustPressed(0, 44)) zOffset += 0.1;   // Q up
-    if (IsControlJustPressed(0, 36)) zOffset -= 0.1;   // Ctrl down
+    const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, true);
+    const camRot: any = GetGameplayCamRot(2);
+    const yaw = (camRot.z * Math.PI) / 180;
+    const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
+    const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
+    const speed = 0.1;
+    let dx = 0, dy = 0, dz = 0;
+    if (IsDisabledControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }   // W
+    if (IsDisabledControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // S
+    if (IsDisabledControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; } // A
+    if (IsDisabledControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; } // D
+    if (IsDisabledControlPressed(0, 44)) dz += speed;   // Q up
+    if (IsDisabledControlPressed(0, 36)) dz -= speed;   // Ctrl down
+    SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
+    if (IsDisabledControlJustPressed(0, 241)) heading += 15; // scroll up
+    if (IsDisabledControlJustPressed(0, 242)) heading -= 15; // scroll down
     SetEntityHeading(preview, heading);
-    if (IsControlJustPressed(0, 38)) confirmed = true;   // E
-    if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
+    if (IsDisabledControlJustPressed(0, 38)) confirmed = true;   // E
+    if (IsDisabledControlJustPressed(0, 177)) cancelled = true;  // Backspace
+    // Disable player movement so the ped stays still.
+    DisableControlAction(0, 30, true);
+    DisableControlAction(0, 31, true);
+    DisableControlAction(0, 32, true);
+    DisableControlAction(0, 33, true);
+    DisableControlAction(0, 34, true);
+    DisableControlAction(0, 35, true);
+    DisableControlAction(0, 44, true);
+    DisableControlAction(0, 36, true);
+    DisableControlAction(0, 21, true);
+    DisableControlAction(0, 22, true);
+    DisableControlAction(0, 24, true);
+    DisableControlAction(0, 25, true);
+    DisableControlAction(0, 38, true);
+    DisableControlAction(0, 177, true);
     await sleep(0);
   }
 
-
-
+    SetEntityVisible(cache.ped, true, false);
+    SetEntityAlpha(cache.ped, 255, false);
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
+
+  // Restore ped.
+  SetEntityVisible(cache.ped, true, false);
+  SetEntityAlpha(cache.ped, 255, false);
 
   if (cancelled) return;
 
@@ -208,49 +200,46 @@ async function manageFurniture(): Promise<void> {
     return;
   }
   if (action === "move") {
-    // ghost preview (freeze player, aim with camera, rotate with scroll wheel)
     const hash = GetHashKey(String(item.model));
     RequestModel(hash);
     let t = 0;
     while (!HasModelLoaded(hash) && t < 100) { await sleep(10); t += 1; }
     if (!HasModelLoaded(hash)) return;
+
+    // Hide the ped and take control of the item only.
+    SetEntityVisible(cache.ped, false, false);
+    SetEntityAlpha(cache.ped, 0, false);
+
     const preview = CreateObject(hash, Number(item.x), Number(item.y), Number(item.z), false, false, false);
-    SetEntityAlpha(preview, 140, false);
+    SetEntityAlpha(preview, 200, false);
     SetEntityCollision(preview, false, false);
+    PlaceObjectOnGroundProperly(preview);
     SetEntityHeading(preview, Number(item.heading));
+
     let confirmed = false;
     let cancelled = false;
     let heading = Number(item.heading);
 
     while (!confirmed && !cancelled) {
-      let _currentRay: number | null = null;
-      let _currentPoint: { x: number; y: number; z: number } | null = null;
-      // persistent ray handled via closure variables outside; re-init per frame is ok for fallback
-      const cam: any = GetGameplayCamCoord();
-      const rot: any = GetGameplayCamRot(2);
-      const rx = (rot.x * Math.PI) / 180;
-      const rz = (rot.z * Math.PI) / 180;
-      const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-      const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-      const dirZ = Math.sin(rx);
-      const dist = 6.0;
-      const ray = StartShapeTestRay(cam.x, cam.y, cam.z, cam.x + dirX * dist, cam.y + dirY * dist, cam.z + dirZ * dist, 1, cache.ped, 0);
-      const res = GetShapeTestResult(ray) as any;
-      let pt: { x: number; y: number; z: number } | null = null;
-      if (res && res[0] === 2 && res[1]) {
-        const c = res[2];
-        pt = { x: c.x, y: c.y, z: c.z };
-      }
-      if (!pt) {
-        pt = { x: Number(item.x), y: Number(item.y), z: Number(item.z) };
-      }
-      if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
+      const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, true);
+      const camRot: any = GetGameplayCamRot(2);
+      const yaw = (camRot.z * Math.PI) / 180;
+      const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
+      const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
+      const speed = 0.1;
+      let dx = 0, dy = 0, dz = 0;
+      if (IsDisabledControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }
+      if (IsDisabledControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }
+      if (IsDisabledControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; }
+      if (IsDisabledControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; }
+      if (IsDisabledControlPressed(0, 44)) dz += speed;
+      if (IsDisabledControlPressed(0, 36)) dz -= speed;
+      SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
       if (IsDisabledControlJustPressed(0, 241)) heading += 15;
       if (IsDisabledControlJustPressed(0, 242)) heading -= 15;
       SetEntityHeading(preview, heading);
       if (IsDisabledControlJustPressed(0, 38)) confirmed = true;
       if (IsDisabledControlJustPressed(0, 177)) cancelled = true;
-      await sleep(0);
       DisableControlAction(0, 30, true);
       DisableControlAction(0, 31, true);
       DisableControlAction(0, 32, true);
@@ -265,7 +254,11 @@ async function manageFurniture(): Promise<void> {
       DisableControlAction(0, 25, true);
       DisableControlAction(0, 38, true);
       DisableControlAction(0, 177, true);
+      await sleep(0);
     }
+
+    SetEntityVisible(cache.ped, true, false);
+    SetEntityAlpha(cache.ped, 255, false);
     const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
