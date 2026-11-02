@@ -6577,6 +6577,7 @@ const EVENTS = {
 	giveKey: "mb-properties:giveKey",
 	takeKey: "mb-properties:takeKey",
 	sell: "mb-properties:sell",
+	buyFurniture: "mb-properties:buyFurniture",
 	inside: "mb-properties:client:inside"
 }, INSIDE_META = "property";
 function readSettings(raw) {
@@ -6611,6 +6612,15 @@ function readInterior(id, v) {
 		id,
 		label: str(v.label, id, 48),
 		entry: vec4(v.entry, ZERO)
+	};
+}
+function readFurniture(id, v) {
+	return {
+		id,
+		label: str(v.label, id, 48),
+		model: str(v.model, "prop_table_01", 64),
+		price: int(v.price, 0, 0),
+		category: str(v.category, "misc", 24)
 	};
 }
 function readProperty(id, v) {
@@ -6710,6 +6720,40 @@ const blip = {
 				},
 				entry: { type: "vec4" }
 			}
+		},
+		furniture: {
+			kind: "records",
+			sync: "all",
+			labelPath: "label",
+			newRecord: {
+				label: "",
+				model: "prop_table_01",
+				price: 100,
+				category: "misc"
+			},
+			sections: {
+				label: {
+					type: "text",
+					min: 1,
+					max: 48
+				},
+				model: {
+					type: "text",
+					min: 2,
+					max: 64
+				},
+				price: {
+					type: "number",
+					min: 0,
+					max: 1e6,
+					integer: !0
+				},
+				category: {
+					type: "text",
+					min: 1,
+					max: 24
+				}
+			}
 		}
 	},
 	tabs: [
@@ -6797,6 +6841,48 @@ const blip = {
 			}]
 		},
 		{
+			id: "furniture",
+			file: "furniture",
+			icon: "couch",
+			label: "ADMIN_TAB_FURNITURE",
+			desc: "ADMIN_TAB_FURNITURE_DESC",
+			createLabel: "ADMIN_NEW_FURNITURE",
+			deleteLabel: "ADMIN_DELETE_FURNITURE",
+			cards: [{
+				icon: "couch",
+				title: "ADMIN_C_FURNITURE",
+				desc: "ADMIN_C_FURNITURE_DESC",
+				fields: [
+					{
+						widget: "text",
+						path: "label",
+						label: "ADMIN_F_LABEL",
+						placeholder: "ADMIN_P_LABEL"
+					},
+					{
+						widget: "text",
+						path: "model",
+						label: "ADMIN_F_MODEL",
+						placeholder: "prop_table_01"
+					},
+					{
+						widget: "number",
+						path: "price",
+						label: "ADMIN_F_PRICE",
+						min: 0,
+						max: 1e6,
+						unit: "$"
+					},
+					{
+						widget: "text",
+						path: "category",
+						label: "ADMIN_F_CATEGORY",
+						placeholder: "misc"
+					}
+				]
+			}]
+		},
+		{
 			id: "settings",
 			file: "settings",
 			icon: "sliders",
@@ -6872,7 +6958,8 @@ const blip = {
 }, core = resourceExport("ai-core"), panel = new AdminPanel(propertiesSchema), content = {
 	settings: panel.view("settings", readSettings),
 	properties: panel.records("properties", readProperty),
-	interiors: panel.records("interiors", readInterior)
+	interiors: panel.records("interiors", readInterior),
+	furniture: panel.records("furniture", readFurniture)
 }, interiors = new class {
 	inside = new Map();
 	worlds = new Map();
@@ -12170,6 +12257,22 @@ onClientCallback(EVENTS.stash, (source) => {
 	if (owner === void 0) return fail("PROP_ERR_LOCKED");
 	let name = `property_${property.id}_${owner}`, settings = content.settings.value;
 	return inventory.registerStash(name, property.label, settings.stashSlots, settings.stashWeight), inventory.openInventory(source, name) ? { ok: !0 } : fail("PROP_ERR_FAR");
+}), onClientCallback(EVENTS.buyFurniture, {
+	args: oneArg((v) => readText(v, 64)),
+	lock: !0
+}, (source, name) => {
+	let property = ownedInside(source);
+	if (!property) return fail("PROP_ERR_OWNER");
+	let item = content.furniture.get(name);
+	if (!item) return fail("PROP_ERR_FAR");
+	let settings = content.settings.value;
+	return core.RemoveMoney(source, settings.account, item.price, "furniture") ? (aiLog("properties", `bought furniture ${item.id}`, {
+		source,
+		metadata: {
+			property: property.id,
+			item: item.id
+		}
+	}), { ok: !0 }) : fail("PROP_ERR_MONEY");
 }), onClientCallback(EVENTS.keys, (source) => {
 	let property = ownedInside(source);
 	return property ? {

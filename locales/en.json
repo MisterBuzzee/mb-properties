@@ -70,5 +70,13 @@
   "ADMIN_F_POLICE_JOBS": "Police jobs",
   "ADMIN_P_POLICE_JOBS": "police",
   "ADMIN_DELETE_PROPERTY_DESC": "An owner keeps the database row until it is sold.",
-  "ADMIN_DELETE_INTERIOR_DESC": "Properties using it can no longer be entered."
+  "ADMIN_DELETE_INTERIOR_DESC": "Properties using it can no longer be entered.",
+  "ADMIN_TAB_FURNITURE": "Furniture",
+  "ADMIN_TAB_FURNITURE_DESC": "Furniture players can buy and place inside their property.",
+  "ADMIN_NEW_FURNITURE": "New furniture",
+  "ADMIN_DELETE_FURNITURE": "Delete furniture",
+  "ADMIN_C_FURNITURE": "Furniture item",
+  "ADMIN_C_FURNITURE_DESC": "A buyable and placeable prop.",
+  "ADMIN_F_MODEL": "Model",
+  "ADMIN_F_CATEGORY": "Category"
 }

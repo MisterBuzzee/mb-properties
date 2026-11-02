@@ -31,6 +31,8 @@ export const EVENTS = {
   takeKey: "mb-properties:takeKey",
   /** Callback: () -> { ok } sells the property the player owns and is in. */
   sell: "mb-properties:sell",
+  /** Callback: (name) -> { ok } buys a furniture item (deducts money). */
+  buyFurniture: "mb-properties:buyFurniture",
   /** Server -> player: (id | null, to: Vec4) the player is inside this property now (or left): teleport to `to`. */
   inside: "mb-properties:client:inside",
 } as const;
@@ -99,6 +101,24 @@ export interface Property {
   interior: string;
   price: number;
   blip: boolean;
+}
+
+export interface Furniture {
+  id: string;
+  label: string;
+  model: string;
+  price: number;
+  category: string;
+}
+
+export function readFurniture(id: string, v: Record<string, unknown>): Furniture {
+  return {
+    id,
+    label: str(v.label, id, 48),
+    model: str(v.model, "prop_table_01", 64),
+    price: int(v.price, 0, 0),
+    category: str(v.category, "misc", 24),
+  };
 }
 
 /** One property record (`panel.records` / `world.records`). */

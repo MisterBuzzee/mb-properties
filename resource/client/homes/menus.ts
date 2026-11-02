@@ -1,8 +1,8 @@
-import { fadeIn, fadeOut, menu } from "@aicore-fivem/lib/client";
-import { isRecord } from "@aicore-fivem/lib/shared";
+import { cache, fadeIn, fadeOut, menu, notify } from "@aicore-fivem/lib/client";
+import { isRecord, sleep } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
-import { EVENTS, type Property } from "common/property";
-import { call, owned } from "./content";
+import { EVENTS, type Furniture, type Property } from "common/property";
+import { call, content, owned } from "./content";
 
 /** The door of a property: buy it when nobody owns it, else go in. */
 export async function door(p: Property): Promise<void> {
@@ -29,12 +29,14 @@ export async function insideMenu(): Promise<void> {
     { id: "exit", label: Locale("PROP_EXIT"), icon: "location-dot" },
     { id: "stash", label: Locale("PROP_STASH"), icon: "box-open" },
     { id: "keys", label: Locale("PROP_KEYS"), icon: "key" },
+    { id: "furniture", label: "Buy furniture", icon: "couch" },
     { id: "sell", label: Locale("PROP_SELL"), icon: "money-bill-wave" },
   ];
   const pick = await menu({ title: Locale("PROP_MENU"), items });
   if (pick === "exit") await move(EVENTS.exit);
   else if (pick === "stash") await call(EVENTS.stash);
   else if (pick === "keys") await keys();
+  else if (pick === "furniture") await buyFurniture();
   else if (pick === "sell") {
     const sure = await menu({
       title: Locale("PROP_SELL"),
@@ -48,6 +50,47 @@ export async function insideMenu(): Promise<void> {
     });
     if (sure === "yes") await call(EVENTS.sell);
   }
+}
+
+async function buyFurniture(): Promise<void> {
+  const list = [...content.furniture.values()];
+  if (list.length === 0) {
+    notify("No furniture available", "info");
+    return;
+  }
+  const pick = await menu({
+    title: "Buy furniture",
+    items: list.map((f: Furniture) => ({
+      id: f.id,
+      label: `${f.label} ($${f.price})`,
+      icon: "couch",
+    })),
+    back: true,
+  });
+  if (!pick || pick === "MENU_BACK") return;
+  const item = list.find((f: Furniture) => f.id === pick);
+  if (!item) return;
+  const ok = await call(EVENTS.buyFurniture, [item.id]);
+  if (!ok) return;
+  // Spawn the prop in front of the player (non-persistent for now).
+  const hash = GetHashKey(item.model);
+  RequestModel(hash);
+  let tries = 0;
+  while (!HasModelLoaded(hash) && tries < 100) {
+    await sleep(10);
+    tries += 1;
+  }
+  if (!HasModelLoaded(hash)) return;
+  const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
+  const heading = GetEntityHeading(cache.ped);
+  const rad = (heading * Math.PI) / 180;
+  const x = px + Math.sin(rad) * 1.5;
+  const y = py + Math.cos(rad) * 1.5;
+  const obj = CreateObject(hash, x, y, pz, false, false, false);
+  SetEntityHeading(obj, heading);
+  PlaceObjectOnGroundProperly(obj);
+  SetModelAsNoLongerNeeded(hash);
+  notify(`Placed ${item.label}`, "success");
 }
 
 async function keys(): Promise<void> {

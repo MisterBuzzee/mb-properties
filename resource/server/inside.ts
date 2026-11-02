@@ -6,7 +6,7 @@ import {
   onClientCallback,
   online,
 } from "@aicore-fivem/lib/server";
-import { fail, oneArg, readId } from "@aicore-fivem/lib/shared";
+import { fail, oneArg, readId, readText } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
 import { EVENTS, type Property } from "common/property";
 import { content, core } from "./content";
@@ -51,6 +51,25 @@ onClientCallback(EVENTS.stash, (source) => {
     ? { ok: true }
     : fail("PROP_ERR_FAR");
 });
+
+onClientCallback(
+  EVENTS.buyFurniture,
+  { args: oneArg((v) => readText(v, 64)), lock: true },
+  (source, name) => {
+    const property = ownedInside(source);
+    if (!property) return fail("PROP_ERR_OWNER");
+    const item = content.furniture.get(name);
+    if (!item) return fail("PROP_ERR_FAR");
+    const settings = content.settings.value;
+    if (!core.RemoveMoney(source, settings.account, item.price, "furniture"))
+      return fail("PROP_ERR_MONEY");
+    aiLog("properties", `bought furniture ${item.id}`, {
+      source,
+      metadata: { property: property.id, item: item.id },
+    });
+    return { ok: true };
+  },
+);
 
 onClientCallback(EVENTS.keys, (source) => {
   const property = ownedInside(source);
