@@ -65,6 +65,10 @@ async function openFurnitureCatalog(): Promise<void> {
   SendNUIMessage({ action: "open", items: list });
 }
 
+// Pending gizmo state.
+let pendingGizmoPreview: number | null = null;
+let pendingGizmoItem: Furniture | null = null;
+
 async function placeFurniture(item: Furniture): Promise<void> {
   const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
   const heading = GetEntityHeading(cache.ped);
@@ -85,56 +89,41 @@ async function placeFurniture(item: Furniture): Promise<void> {
   SetEntityHeading(preview, heading);
   PlaceObjectOnGroundProperly(preview);
 
-  // Use object_gizmo's gizmo to position/rotate the prop.
-  let finalCoords = { x, y, z };
-  let finalHeading = heading;
-  let cancelled = false;
+  // Hide the ped; we control the item.
+  SetEntityVisible(cache.ped, false, false);
+  SetEntityAlpha(cache.ped, 0, false);
+
+  pendingGizmoPreview = preview;
+  pendingGizmoItem = item;
+
   const gizmo = (globalThis as any).exports?.object_gizmo;
   if (gizmo && typeof gizmo.useGizmo === "function") {
-    const result = gizmo.useGizmo(preview) as any;
-    if (result) {
-      if (result.cancelled) cancelled = true;
-      const pos = result.position;
-      const rot = result.rotation;
-      if (pos) {
-        finalCoords = { x: pos.x ?? pos[0] ?? x, y: pos.y ?? pos[1] ?? y, z: pos.z ?? pos[2] ?? z };
-      }
-      if (rot) {
-        // rotation may be euler; use heading (z-rotation) if provided
-        if (typeof rot === "number") finalHeading = rot;
-        else if (rot.z !== undefined) finalHeading = rot.z;
-        else if (Array.isArray(rot) && rot.length >= 3) finalHeading = rot[2];
-        else finalHeading = heading;
+    // Fire-and-forget: gizmo runs in Lua and fires editFinished event when done.
+    try { gizmo.useGizmo(preview); } catch { /* ignore */ }
+  } else {
+    // No gizmo: fall back to immediate placement.
+    const ok = await call(EVENTS.buyFurniture, [item.id, x, y, z, heading]);
+    if (ok) {
+      const hash2 = GetHashKey(item.model);
+      RequestModel(hash2);
+      let t2 = 0;
+      while (!HasModelLoaded(hash2) && t2 < 100) { await sleep(10); t2 += 1; }
+      if (HasModelLoaded(hash2)) {
+        const obj = CreateObject(hash2, x, y, z, false, false, false);
+        trackFurniture(obj);
+        SetEntityHeading(obj, heading);
+        PlaceObjectOnGroundProperly(obj);
+        SetModelAsNoLongerNeeded(hash2);
+        notify(`Placed ${item.label}`, "success");
       }
     }
-  } else {
-    // Fallback: keep simple spawn (no gizmo available).
+    DeleteEntity(preview);
+    SetModelAsNoLongerNeeded(hash);
+    SetEntityVisible(cache.ped, true, false);
+    SetEntityAlpha(cache.ped, 255, false);
+    pendingGizmoPreview = null;
+    pendingGizmoItem = null;
   }
-
-  DeleteEntity(preview);
-  SetModelAsNoLongerNeeded(hash);
-
-  if (cancelled) {
-    notify("Cancelled", "info");
-    return;
-  }
-
-  const ok = await call(EVENTS.buyFurniture, [item.id, finalCoords.x, finalCoords.y, finalCoords.z, finalHeading]);
-  if (!ok) return;
-  const hash2 = GetHashKey(item.model);
-  RequestModel(hash2);
-  let t2 = 0;
-  while (!HasModelLoaded(hash2) && t2 < 100) {
-    await sleep(10);
-    t2 += 1;
-  }
-  if (!HasModelLoaded(hash2)) return;
-  const obj = CreateObject(hash2, finalCoords.x, finalCoords.y, finalCoords.z, false, false, false);
-  trackFurniture(obj);
-  SetEntityHeading(obj, finalHeading);
-  PlaceObjectOnGroundProperly(obj);
-  SetModelAsNoLongerNeeded(hash2);
-  notify(`Placed ${item.label}`, "success");
 }
 
 async function manageFurniture(): Promise<void> {
@@ -209,4 +198,55 @@ RegisterNuiCallback("closeFurniture", (_data: unknown, cb: (v: unknown) => void)
   SetNuiFocus(false, false);
   SendNUIMessage({ action: "close" });
   cb(true);
+});
+
+on("object_gizmo:client:editFinished", (result: any) => {
+  const preview = pendingGizmoPreview;
+  const item = pendingGizmoItem;
+  pendingGizmoPreview = null;
+  pendingGizmoItem = null;
+  if (!preview || !item) return;
+  if (!DoesEntityExist(preview)) {
+    SetEntityVisible(cache.ped, true, false);
+    SetEntityAlpha(cache.ped, 255, false);
+    return;
+  }
+  const cancelled = !!result?.cancelled;
+  const pos = result?.position;
+  const rot = result?.rotation;
+  const fx = pos ? (pos.x ?? pos[0] ?? 0) : 0;
+  const fy = pos ? (pos.y ?? pos[1] ?? 0) : 0;
+  const fz = pos ? (pos.z ?? pos[2] ?? 0) : 0;
+  let fheading = GetEntityHeading(preview);
+  if (rot) {
+    if (typeof rot === "number") fheading = rot;
+    else if (rot.z !== undefined) fheading = rot.z;
+    else if (Array.isArray(rot) && rot.length >= 3) fheading = rot[2];
+  }
+  DeleteEntity(preview);
+  SetModelAsNoLongerNeeded(GetHashKey(item.model));
+  SetEntityVisible(cache.ped, true, false);
+  SetEntityAlpha(cache.ped, 255, false);
+  if (cancelled) {
+    notify("Cancelled", "info");
+    return;
+  }
+  void (async () => {
+    const ok = await call(EVENTS.buyFurniture, [item.id, fx, fy, fz, fheading]);
+    if (!ok) return;
+    const hash2 = GetHashKey(item.model);
+    RequestModel(hash2);
+    let t2 = 0;
+    while (!HasModelLoaded(hash2) && t2 < 100) {
+      await sleep(10);
+      t2 += 1;
+    }
+    if (!HasModelLoaded(hash2)) return;
+    const obj = CreateObject(hash2, fx, fy, fz, false, false, false);
+    trackFurniture(obj);
+    SetEntityHeading(obj, fheading);
+    PlaceObjectOnGroundProperly(obj);
+    SetModelAsNoLongerNeeded(hash2);
+    notify(`Placed ${item.label}`, "success");
+  })();
 });
