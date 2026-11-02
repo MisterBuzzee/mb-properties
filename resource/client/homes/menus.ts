@@ -61,6 +61,7 @@ async function openFurnitureCatalog(): Promise<void> {
     notify("No furniture available", "info");
     return;
   }
+  notify(`Opening catalog: ${list.length} items`, "info");
   SetNuiFocus(true, true);
   SendNUIMessage({ action: "open", items: list });
 }
