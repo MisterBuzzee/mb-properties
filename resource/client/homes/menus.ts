@@ -86,56 +86,32 @@ async function placeFurniture(item: Furniture): Promise<void> {
   let confirmed = false;
   let cancelled = false;
   let heading = GetEntityHeading(cache.ped);
-  // Offset from camera: item stays in front of you, never vanishes.
-  let offFwd = 3.0;
-  let offRight = 0.0;
-  let offUp = 0.0;
+  // Distance in front of the camera; Q/Ctrl adjust.
+  let dist = 3.0;
+  let heightOff = 0.0;
 
   while (!confirmed && !cancelled) {
     const cam: any = GetGameplayCamCoord();
     const rot: any = GetGameplayCamRot(2);
-    const yaw = (rot.z * Math.PI) / 180;
-    const pitch = (rot.x * Math.PI) / 180;
-    const fwdX = -Math.sin(yaw) * Math.abs(Math.cos(pitch));
-    const fwdY = Math.cos(yaw) * Math.abs(Math.cos(pitch));
-    const fwdZ = Math.sin(pitch);
-    const rightX = Math.cos(yaw);
-    const rightY = Math.sin(yaw);
-    const upX = 0, upY = 0, upZ = 1;
-    const px = cam.x + fwdX * offFwd + rightX * offRight + upX * offUp;
-    const py = cam.y + fwdY * offFwd + rightY * offRight + upY * offUp;
-    const pz = cam.z + fwdZ * offFwd + upZ * offUp;
+    const rx = (rot.x * Math.PI) / 180;
+    const rz = (rot.z * Math.PI) / 180;
+    const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
+    const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
+    const dirZ = Math.sin(rx);
+    // Place the item in front of the camera at `dist`, plus height offset.
+    const px = cam.x + dirX * dist;
+    const py = cam.y + dirY * dist;
+    const pz = cam.z + dirZ * dist + heightOff;
     SetEntityCoords(preview, px, py, pz, false, false, false, false);
+    if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
+    if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
+    if (IsControlJustPressed(0, 44)) dist = Math.min(8, dist + 0.5);   // Q: farther
+    if (IsControlJustPressed(0, 36)) dist = Math.max(1, dist - 0.5);    // Ctrl: closer
+    if (IsControlJustPressed(0, 32)) heightOff += 0.1;  // W: up
+    if (IsControlJustPressed(0, 33)) heightOff -= 0.1;  // S: down
     SetEntityHeading(preview, heading);
-    // Movement of the offset (item stays in view).
-    if (IsDisabledControlPressed(0, 32)) offFwd += 0.05;   // W
-    if (IsDisabledControlPressed(0, 33)) offFwd -= 0.05;   // S
-    if (IsDisabledControlPressed(0, 34)) offRight -= 0.05; // A
-    if (IsDisabledControlPressed(0, 35)) offRight += 0.05; // D
-    if (IsDisabledControlPressed(0, 44)) offUp += 0.05;    // Q
-    if (IsDisabledControlPressed(0, 36)) offUp -= 0.05;    // Ctrl
-    // Clamp so it stays near.
-    offFwd = Math.max(1, Math.min(8, offFwd));
-    offRight = Math.max(-4, Math.min(4, offRight));
-    offUp = Math.max(-2, Math.min(4, offUp));
-    if (IsDisabledControlJustPressed(0, 241)) heading += 15; // scroll up
-    if (IsDisabledControlJustPressed(0, 242)) heading -= 15; // scroll down
-    if (IsDisabledControlJustPressed(0, 38)) confirmed = true;   // E
-    if (IsDisabledControlJustPressed(0, 177)) cancelled = true;  // Backspace
-    DisableControlAction(0, 30, true);
-    DisableControlAction(0, 31, true);
-    DisableControlAction(0, 32, true);
-    DisableControlAction(0, 33, true);
-    DisableControlAction(0, 34, true);
-    DisableControlAction(0, 35, true);
-    DisableControlAction(0, 44, true);
-    DisableControlAction(0, 36, true);
-    DisableControlAction(0, 21, true);
-    DisableControlAction(0, 22, true);
-    DisableControlAction(0, 24, true);
-    DisableControlAction(0, 25, true);
-    DisableControlAction(0, 38, true);
-    DisableControlAction(0, 177, true);
+    if (IsControlJustPressed(0, 38)) confirmed = true;   // E
+    if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
     await sleep(0);
   }
 
