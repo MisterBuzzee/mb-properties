@@ -84,7 +84,6 @@ async function buyFurniture(): Promise<void> {
   if (!HasModelLoaded(hash)) return;
 
   // Freeze the player while placing.
-  FreezeEntityPosition(PlayerPedId(), true);
 
   // Start preview in front of the player.
   const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
@@ -120,6 +119,14 @@ async function buyFurniture(): Promise<void> {
     SetEntityHeading(preview, heading);
     if (IsControlJustPressed(0, 38)) confirmed = true;   // E
     if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
+    DisableControlAction(0, 30, true);
+    DisableControlAction(0, 31, true);
+    DisableControlAction(0, 32, true);
+    DisableControlAction(0, 33, true);
+    DisableControlAction(0, 34, true);
+    DisableControlAction(0, 35, true);
+    DisableControlAction(0, 21, true);
+    DisableControlAction(0, 22, true);
     await sleep(0);
   }
 
@@ -127,7 +134,6 @@ async function buyFurniture(): Promise<void> {
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
-  FreezeEntityPosition(PlayerPedId(), false);
 
   if (cancelled) return;
 
@@ -194,7 +200,6 @@ async function manageFurniture(): Promise<void> {
     let t = 0;
     while (!HasModelLoaded(hash) && t < 100) { await sleep(10); t += 1; }
     if (!HasModelLoaded(hash)) return;
-    FreezeEntityPosition(PlayerPedId(), true);
     const preview = CreateObject(hash, Number(item.x), Number(item.y), Number(item.z), false, false, false);
     SetEntityAlpha(preview, 140, false);
     SetEntityCollision(preview, false, false);
@@ -223,13 +228,20 @@ async function manageFurniture(): Promise<void> {
       SetEntityHeading(preview, heading);
       if (IsControlJustPressed(0, 38)) confirmed = true;
       if (IsControlJustPressed(0, 177)) cancelled = true;
+      DisableControlAction(0, 30, true);
+      DisableControlAction(0, 31, true);
+      DisableControlAction(0, 32, true);
+      DisableControlAction(0, 33, true);
+      DisableControlAction(0, 34, true);
+      DisableControlAction(0, 35, true);
+      DisableControlAction(0, 21, true);
+      DisableControlAction(0, 22, true);
       await sleep(0);
     }
     const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
     SetModelAsNoLongerNeeded(hash);
-    FreezeEntityPosition(PlayerPedId(), false);
     if (cancelled) return;
     const ok = await call(EVENTS.updateFurniture, [id, fx, fy, fz, fh]);
     if (!ok) return;
