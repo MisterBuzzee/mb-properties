@@ -75,55 +75,86 @@ async function placeFurniture(item: Furniture): Promise<void> {
   }
   if (!HasModelLoaded(hash)) return;
 
-  // Hide the ped; we control the item, not the ped.
+  // Hide the ped.
   SetEntityVisible(cache.ped, false, false);
   SetEntityAlpha(cache.ped, 0, false);
 
-  const preview = CreateObject(hash, 0, 0, 0, false, false, false);
+  const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
+  const sph = GetEntityHeading(cache.ped);
+  const spr = (sph * Math.PI) / 180;
+  const preview = CreateObject(hash, spx + Math.sin(spr) * 2, spy + Math.cos(spr) * 2, spz, false, false, false);
   SetEntityAlpha(preview, 200, false);
   SetEntityCollision(preview, false, false);
+  PlaceObjectOnGroundProperly(preview);
 
+  // Save original transform for cancel.
+  const origCoords = GetEntityCoords(preview, false);
+  const origHeading = GetEntityHeading(preview);
+
+  // Enter cursor mode and run the gizmo.
+  EnterCursorMode();
   let confirmed = false;
   let cancelled = false;
-  let heading = GetEntityHeading(cache.ped);
-  // Distance in front of the camera; Q/Ctrl adjust.
-  let dist = 3.0;
-  let heightOff = 0.0;
 
-  while (!confirmed && !cancelled) {
-    const cam: any = GetGameplayCamCoord();
-    const rot: any = GetGameplayCamRot(2);
-    const rx = (rot.x * Math.PI) / 180;
-    const rz = (rot.z * Math.PI) / 180;
-    const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-    const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-    const dirZ = Math.sin(rx);
-    // Place the item in front of the camera at `dist`, plus height offset.
-    const px = cam.x + dirX * dist;
-    const py = cam.y + dirY * dist;
-    const pz = cam.z + dirZ * dist + heightOff;
-    SetEntityCoords(preview, px, py, pz, false, false, false, false);
-    if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
-    if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
-    if (IsControlJustPressed(0, 44)) dist = Math.min(8, dist + 0.5);   // Q: farther
-    if (IsControlJustPressed(0, 36)) dist = Math.max(1, dist - 0.5);    // Ctrl: closer
-    if (IsControlJustPressed(0, 32)) heightOff += 0.1;  // W: up
-    if (IsControlJustPressed(0, 33)) heightOff -= 0.1;  // S: down
-    SetEntityHeading(preview, heading);
-    if (IsControlJustPressed(0, 38)) confirmed = true;   // E
-    if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
+  while (!confirmed && !cancelled && DoesEntityExist(preview)) {
+    // Build the matrix buffer (column-major, right/forward/up/position).
+    const buf = new ArrayBuffer(60);
+    const view = new DataView(buf);
+    const f = GetEntityMatrix(preview)[0] as any;
+    const r = GetEntityMatrix(preview)[1] as any;
+    const u = GetEntityMatrix(preview)[2] as any;
+    const a = GetEntityMatrix(preview)[3] as any;
+    // right
+    view.setFloat32(0, r[0], true); view.setFloat32(4, r[1], true); view.setFloat32(8, r[2], true); view.setFloat32(12, 0, true);
+    // forward
+    view.setFloat32(16, f[0], true); view.setFloat32(20, f[1], true); view.setFloat32(24, f[2], true); view.setFloat32(28, 0, true);
+    // up
+    view.setFloat32(32, u[0], true); view.setFloat32(36, u[1], true); view.setFloat32(40, u[2], true); view.setFloat32(44, 0, true);
+    // position
+    view.setFloat32(48, a[0], true); view.setFloat32(52, a[1], true); view.setFloat32(56, a[2], true);
+
+    let changed = false;
+    try {
+      changed = Citizen.invokeNative("0xEB2EDCA2", buf, "Editor1", Citizen.returnResultAnyway()) as boolean;
+    } catch {
+      changed = false;
+    }
+    if (changed) {
+      const x1 = view.getFloat32(0, true), y1 = view.getFloat32(4, true), z1 = view.getFloat32(8, true);
+      const x2 = view.getFloat32(16, true), y2 = view.getFloat32(20, true), z2 = view.getFloat32(24, true);
+      const x3 = view.getFloat32(32, true), y3 = view.getFloat32(36, true), z3 = view.getFloat32(40, true);
+      const tx = view.getFloat32(48, true), ty = view.getFloat32(52, true), tz = view.getFloat32(56, true);
+      SetEntityMatrix(preview, x1, y1, z1, x2, y2, z2, x3, y3, z3, tx, ty, tz);
+    }
+
+    // Disable game controls during gizmo.
+    DisableControlAction(0, 24, true);
+    DisableControlAction(0, 25, true);
+    DisableControlAction(0, 140, true);
+    DisablePlayerFiring(PlayerId(), true);
+
+    if (IsControlJustPressed(0, 201)) confirmed = true; // Enter
+    if (IsControlJustPressed(0, 177)) cancelled = true; // Backspace
+    if (IsControlJustPressed(0, 202)) cancelled = true; // Esc
     await sleep(0);
+  }
+
+  LeaveCursorMode();
+  SetEntityVisible(cache.ped, true, false);
+  SetEntityAlpha(cache.ped, 255, false);
+
+  if (cancelled || !DoesEntityExist(preview)) {
+    SetEntityCoords(preview, origCoords[0] ?? 0, origCoords[1] ?? 0, origCoords[2] ?? 0, false, false, false, false);
+    SetEntityHeading(preview, origHeading);
+    DeleteEntity(preview);
+    SetModelAsNoLongerNeeded(hash);
+    return;
   }
 
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
-
-  SetEntityVisible(cache.ped, true, false);
-  SetEntityAlpha(cache.ped, 255, false);
-
-  if (cancelled) return;
 
   const ok = await call(EVENTS.buyFurniture, [item.id, fx, fy, fz, fheading]);
   if (!ok) return;
