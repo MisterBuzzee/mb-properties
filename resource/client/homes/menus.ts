@@ -117,6 +117,10 @@ async function buyFurniture(): Promise<void> {
     if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
     if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
     SetEntityHeading(preview, heading);
+    const [gx = 0, gy = 0, gz = 0] = GetEntityCoords(preview, true);
+    DrawMarker(0, gx + 0.6, gy, gz, 0, 0, 0, 0, 90, 0, 0.15, 0.15, 0.15, 255, 0, 0, 180, false, false, 2, false, "", "", false);
+    DrawMarker(0, gx, gy + 0.6, gz, 0, 0, 0, 90, 0, 0, 0.15, 0.15, 0.15, 0, 255, 0, 180, false, false, 2, false, "", "", false);
+    DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
     if (IsControlJustPressed(0, 38)) confirmed = true;   // E
     if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
     DisableControlAction(0, 30, true);
@@ -226,6 +230,10 @@ async function manageFurniture(): Promise<void> {
       if (IsControlJustPressed(0, 241)) heading += 15;
       if (IsControlJustPressed(0, 242)) heading -= 15;
       SetEntityHeading(preview, heading);
+      const [gx = 0, gy = 0, gz = 0] = GetEntityCoords(preview, true);
+      DrawMarker(0, gx + 0.6, gy, gz, 0, 0, 0, 0, 90, 0, 0.15, 0.15, 0.15, 255, 0, 0, 180, false, false, 2, false, "", "", false);
+      DrawMarker(0, gx, gy + 0.6, gz, 0, 0, 0, 90, 0, 0, 0.15, 0.15, 0.15, 0, 255, 0, 180, false, false, 2, false, "", "", false);
+      DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
       if (IsControlJustPressed(0, 38)) confirmed = true;
       if (IsControlJustPressed(0, 177)) cancelled = true;
       DisableControlAction(0, 30, true);
