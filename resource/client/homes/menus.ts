@@ -87,7 +87,6 @@ async function placeFurniture(item: Furniture): Promise<void> {
   SetEntityAlpha(preview, 140, false);
   SetEntityCollision(preview, false, false);
 
-  FreezeEntityPosition(PlayerPedId(), true);
   let confirmed = false;
   let cancelled = false;
   let heading = sph;
@@ -101,31 +100,43 @@ async function placeFurniture(item: Furniture): Promise<void> {
     const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
     const speed = 0.08;
     let dx = 0, dy = 0, dz = 0;
-    if (IsControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }   // up
-    if (IsControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // down
-    if (IsControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; } // left
-    if (IsControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; } // right
-    if (IsControlPressed(0, 44)) dz += speed;   // Q up
-    if (IsControlPressed(0, 36)) dz -= speed;   // Ctrl down
+    if (IsDisabledControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }   // up
+    if (IsDisabledControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // down
+    if (IsDisabledControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; } // left
+    if (IsDisabledControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; } // right
+    if (IsDisabledControlPressed(0, 44)) dz += speed;   // Q up
+    if (IsDisabledControlPressed(0, 36)) dz -= speed;   // Ctrl down
     SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
-    if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
-    if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
+    if (IsDisabledControlJustPressed(0, 241)) heading += 15; // scroll up
+    if (IsDisabledControlJustPressed(0, 242)) heading -= 15; // scroll down
     SetEntityHeading(preview, heading);
     const [gx = 0, gy = 0, gz = 0] = GetEntityCoords(preview, true);
     DrawMarker(0, gx + 0.6, gy, gz, 0, 0, 0, 0, 90, 0, 0.15, 0.15, 0.15, 255, 0, 0, 180, false, false, 2, false, "", "", false);
     DrawMarker(0, gx, gy + 0.6, gz, 0, 0, 0, 90, 0, 0, 0.15, 0.15, 0.15, 0, 255, 0, 180, false, false, 2, false, "", "", false);
     DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
-    if (IsControlJustPressed(0, 38)) confirmed = true;   // E
-    if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
+    if (IsDisabledControlJustPressed(0, 38)) confirmed = true;   // E
+    if (IsDisabledControlJustPressed(0, 177)) cancelled = true;  // Backspace
     await sleep(0);
+    DisableControlAction(0, 30, true);
+    DisableControlAction(0, 31, true);
+    DisableControlAction(0, 32, true);
+    DisableControlAction(0, 33, true);
+    DisableControlAction(0, 34, true);
+    DisableControlAction(0, 35, true);
+    DisableControlAction(0, 44, true);
+    DisableControlAction(0, 36, true);
+    DisableControlAction(0, 21, true);
+    DisableControlAction(0, 22, true);
+    DisableControlAction(0, 24, true);
+    DisableControlAction(0, 25, true);
+    DisableControlAction(0, 38, true);
+    DisableControlAction(0, 177, true);
   }
 
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
-  FreezeEntityPosition(PlayerPedId(), false);
-  SetEntityDynamic(PlayerPedId(), true);
 
   if (cancelled) return;
 
@@ -196,7 +207,6 @@ async function manageFurniture(): Promise<void> {
     SetEntityAlpha(preview, 140, false);
     SetEntityCollision(preview, false, false);
     SetEntityHeading(preview, Number(item.heading));
-    FreezeEntityPosition(PlayerPedId(), true);
     let confirmed = false;
     let cancelled = false;
     let heading = Number(item.heading);
@@ -209,30 +219,42 @@ async function manageFurniture(): Promise<void> {
       const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
       const speed = 0.08;
       let dx = 0, dy = 0, dz = 0;
-      if (IsControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }
-      if (IsControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }
-      if (IsControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; }
-      if (IsControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; }
-      if (IsControlPressed(0, 44)) dz += speed;
-      if (IsControlPressed(0, 36)) dz -= speed;
+      if (IsDisabledControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }
+      if (IsDisabledControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }
+      if (IsDisabledControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; }
+      if (IsDisabledControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; }
+      if (IsDisabledControlPressed(0, 44)) dz += speed;
+      if (IsDisabledControlPressed(0, 36)) dz -= speed;
       SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
-      if (IsControlJustPressed(0, 241)) heading += 15;
-      if (IsControlJustPressed(0, 242)) heading -= 15;
+      if (IsDisabledControlJustPressed(0, 241)) heading += 15;
+      if (IsDisabledControlJustPressed(0, 242)) heading -= 15;
       SetEntityHeading(preview, heading);
       const [gx = 0, gy = 0, gz = 0] = GetEntityCoords(preview, true);
       DrawMarker(0, gx + 0.6, gy, gz, 0, 0, 0, 0, 90, 0, 0.15, 0.15, 0.15, 255, 0, 0, 180, false, false, 2, false, "", "", false);
       DrawMarker(0, gx, gy + 0.6, gz, 0, 0, 0, 90, 0, 0, 0.15, 0.15, 0.15, 0, 255, 0, 180, false, false, 2, false, "", "", false);
       DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
-      if (IsControlJustPressed(0, 38)) confirmed = true;
-      if (IsControlJustPressed(0, 177)) cancelled = true;
+      if (IsDisabledControlJustPressed(0, 38)) confirmed = true;
+      if (IsDisabledControlJustPressed(0, 177)) cancelled = true;
       await sleep(0);
+      DisableControlAction(0, 30, true);
+      DisableControlAction(0, 31, true);
+      DisableControlAction(0, 32, true);
+      DisableControlAction(0, 33, true);
+      DisableControlAction(0, 34, true);
+      DisableControlAction(0, 35, true);
+      DisableControlAction(0, 44, true);
+      DisableControlAction(0, 36, true);
+      DisableControlAction(0, 21, true);
+      DisableControlAction(0, 22, true);
+      DisableControlAction(0, 24, true);
+      DisableControlAction(0, 25, true);
+      DisableControlAction(0, 38, true);
+      DisableControlAction(0, 177, true);
     }
     const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
     SetModelAsNoLongerNeeded(hash);
-    FreezeEntityPosition(PlayerPedId(), false);
-    SetEntityDynamic(PlayerPedId(), true);
     if (cancelled) return;
     const ok = await call(EVENTS.updateFurniture, [id, fx, fy, fz, fh]);
     if (!ok) return;
