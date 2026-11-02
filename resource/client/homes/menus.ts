@@ -86,44 +86,34 @@ async function buyFurniture(): Promise<void> {
   // Freeze the player while placing.
   FreezeEntityPosition(cache.ped, true);
 
-  const preview = CreateObject(hash, 0, 0, 0, false, false, false);
+  // Start preview in front of the player.
+  const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
+  const sph = GetEntityHeading(cache.ped);
+  const spr = (sph * Math.PI) / 180;
+  const preview = CreateObject(hash, spx + Math.sin(spr) * 1.5, spy + Math.cos(spr) * 1.5, spz, false, false, false);
   SetEntityAlpha(preview, 140, false);
   SetEntityCollision(preview, false, false);
 
   let confirmed = false;
   let cancelled = false;
-  let heading = GetEntityHeading(cache.ped);
+  let heading = sph;
 
-  // Helper: ground point under the camera aim.
-  const aimPoint = (): { x: number; y: number; z: number } | null => {
-    const cam: any = GetGameplayCamCoord();
-    const rot: any = GetGameplayCamRot(2);
-    const rx = (rot.x * Math.PI) / 180;
-    const rz = (rot.z * Math.PI) / 180;
-    const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-    const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-    const dirZ = Math.sin(rx);
-    const dist = 6.0;
-    const ex = cam.x + dirX * dist;
-    const ey = cam.y + dirY * dist;
-    const ez = cam.z + dirZ * dist;
-    const ray = StartShapeTestRay(cam.x, cam.y, cam.z, ex, ey, ez, 1, cache.ped, 0);
-    const res = GetShapeTestResult(ray) as any;
-    if (res && res[0] === 2 && res[1]) {
-      const c = res[2];
-      return { x: c.x, y: c.y, z: c.z };
-    }
-    // fallback: in front of player
-    const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
-    const ph = GetEntityHeading(cache.ped);
-    const pr = (ph * Math.PI) / 180;
-    return { x: px + Math.sin(pr) * 2, y: py + Math.cos(pr) * 2, z: pz };
-  };
-
+  // Full control of the item: arrows move it, Q/Ctrl change height, scroll rotates.
   while (!confirmed && !cancelled) {
-    const pt = aimPoint();
-    if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
-    // scroll wheel rotates
+    const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, false);
+    const camRot: any = GetGameplayCamRot(2);
+    const yaw = (camRot.z * Math.PI) / 180;
+    const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
+    const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
+    const speed = 0.08;
+    let dx = 0, dy = 0, dz = 0;
+    if (IsControlPressed(0, 172)) { dx += fwdX * speed; dy += fwdY * speed; }   // up
+    if (IsControlPressed(0, 173)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // down
+    if (IsControlPressed(0, 174)) { dx -= rightX * speed; dy -= rightY * speed; } // left
+    if (IsControlPressed(0, 175)) { dx += rightX * speed; dy += rightY * speed; } // right
+    if (IsControlPressed(0, 44)) dz += speed;   // Q up
+    if (IsControlPressed(0, 36)) dz -= speed;   // Ctrl down
+    SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
     if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
     if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
     SetEntityHeading(preview, heading);
@@ -212,30 +202,21 @@ async function manageFurniture(): Promise<void> {
     let cancelled = false;
     let heading = Number(item.heading);
 
-    const aimPoint = (): { x: number; y: number; z: number } | null => {
-      const cam: any = GetGameplayCamCoord();
-      const rot: any = GetGameplayCamRot(2);
-      const rx = (rot.x * Math.PI) / 180;
-      const rz = (rot.z * Math.PI) / 180;
-      const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-      const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-      const dirZ = Math.sin(rx);
-      const dist = 6.0;
-      const ex = cam.x + dirX * dist;
-      const ey = cam.y + dirY * dist;
-      const ez = cam.z + dirZ * dist;
-      const ray = StartShapeTestRay(cam.x, cam.y, cam.z, ex, ey, ez, 1, cache.ped, 0);
-      const res = GetShapeTestResult(ray) as any;
-      if (res && res[0] === 2 && res[1]) {
-        const c = res[2];
-        return { x: c.x, y: c.y, z: c.z };
-      }
-      return null;
-    };
-
     while (!confirmed && !cancelled) {
-      const pt = aimPoint();
-      if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
+      const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, false);
+      const camRot: any = GetGameplayCamRot(2);
+      const yaw = (camRot.z * Math.PI) / 180;
+      const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
+      const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
+      const speed = 0.08;
+      let dx = 0, dy = 0, dz = 0;
+      if (IsControlPressed(0, 172)) { dx += fwdX * speed; dy += fwdY * speed; }
+      if (IsControlPressed(0, 173)) { dx -= fwdX * speed; dy -= fwdY * speed; }
+      if (IsControlPressed(0, 174)) { dx -= rightX * speed; dy -= rightY * speed; }
+      if (IsControlPressed(0, 175)) { dx += rightX * speed; dy += rightY * speed; }
+      if (IsControlPressed(0, 44)) dz += speed;
+      if (IsControlPressed(0, 36)) dz -= speed;
+      SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
       if (IsControlJustPressed(0, 241)) heading += 15;
       if (IsControlJustPressed(0, 242)) heading -= 15;
       SetEntityHeading(preview, heading);
