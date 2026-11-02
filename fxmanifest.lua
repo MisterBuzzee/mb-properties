@@ -22,4 +22,5 @@ files {
 	'data/settings.json',
 	'data/properties.json',
 	'data/interiors.json',
+	'data/furniture.json',
 }

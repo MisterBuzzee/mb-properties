@@ -1,5 +1,6 @@
-﻿import { existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { defineConfig, type UserConfig } from "tsdown";
+import postBuild from "./scripts/postBuild.ts";
 
 const config: Record<string, UserConfig> = {
   resource: {
@@ -69,6 +70,7 @@ function createConfig(name: string): UserConfig {
       ...config.resource?.outputOptions,
       ...config[name]?.outputOptions,
     },
+    onSuccess: postBuild,
   };
 }
 
