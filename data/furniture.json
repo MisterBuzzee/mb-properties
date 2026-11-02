@@ -1,1 +1,25 @@
-{}
+{
+  "$schema": "./schemas/furniture.schema.json",
+  "table_01": { "label": "Wooden Table", "model": "prop_table_01", "price": 250, "category": "tables" },
+  "table_02": { "label": "Coffee Table", "model": "prop_table_02", "price": 180, "category": "tables" },
+  "table_03": { "label": "Dining Table", "model": "prop_table_03", "price": 400, "category": "tables" },
+  "table_04": { "label": "Small Table", "model": "prop_table_04", "price": 120, "category": "tables" },
+  "chair_01": { "label": "Wooden Chair", "model": "prop_chair_01a", "price": 80, "category": "chairs" },
+  "chair_02": { "label": "Office Chair", "model": "prop_chair_02", "price": 150, "category": "chairs" },
+  "chair_03": { "label": "Dining Chair", "model": "prop_chair_03", "price": 90, "category": "chairs" },
+  "chair_04": { "label": "Lounge Chair", "model": "prop_chair_04a", "price": 200, "category": "chairs" },
+  "sofa_01": { "label": "Fabric Sofa", "model": "prop_sofa_01", "price": 600, "category": "sofas" },
+  "sofa_02": { "label": "Leather Sofa", "model": "prop_sofa_02", "price": 850, "category": "sofas" },
+  "bed_01": { "label": "Double Bed", "model": "v_res_mson_bed", "price": 900, "category": "beds" },
+  "tv_01": { "label": "Flat TV", "model": "prop_tv_flat_01", "price": 500, "category": "electronics" },
+  "tv_02": { "label": "Large TV", "model": "prop_tv_flat_02", "price": 750, "category": "electronics" },
+  "lamp_01": { "label": "Table Lamp", "model": "prop_lamp_01", "price": 60, "category": "lighting" },
+  "lamp_02": { "label": "Floor Lamp", "model": "prop_lamp_02a", "price": 110, "category": "lighting" },
+  "plant_01": { "label": "Potted Plant", "model": "prop_plant_int_01a", "price": 70, "category": "plants" },
+  "plant_02": { "label": "Tall Plant", "model": "prop_plant_int_02a", "price": 95, "category": "plants" },
+  "plant_03": { "label": "Small Plant", "model": "prop_plant_int_03a", "price": 45, "category": "plants" },
+  "fridge_01": { "label": "Fridge", "model": "prop_fridge_01", "price": 450, "category": "kitchen" },
+  "micro_01": { "label": "Microwave", "model": "prop_micro_01", "price": 120, "category": "kitchen" },
+  "kettle_01": { "label": "Kettle", "model": "prop_kettle", "price": 40, "category": "kitchen" },
+  "toaster_01": { "label": "Toaster", "model": "prop_toaster", "price": 35, "category": "kitchen" }
+}
