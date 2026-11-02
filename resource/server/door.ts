@@ -11,6 +11,7 @@ import { Locale } from "common";
 import { EVENTS } from "common/property";
 import { content, core } from "./content";
 import { inside, interiors } from "./interiors";
+import { loadFurniture } from "./inside";
 import { nameOf, sourceOf } from "./players";
 import { owners, sendAccess } from "./store";
 
@@ -77,6 +78,9 @@ onClientCallback(EVENTS.enter, { args: idArgs, lock: true }, (source, id) => {
   )
     return fail("PROP_ERR_LOCKED");
   interiors.move(source, interior.entry, id);
+  void loadFurniture(id).then((items) =>
+    emitNet(EVENTS.furniture, source, id, items),
+  );
   return { ok: true };
 });
 
@@ -86,6 +90,7 @@ onClientCallback(
     const property = content.properties.get(inside.get(source) ?? "");
     if (!property) return fail("PROP_ERR_FAR");
     interiors.move(source, property.door, null);
+  emitNet(EVENTS.furniture, source, null, []);
     return { ok: true };
   },
   { lock: true },

@@ -389,7 +389,7 @@ function isNear(source, point, metres) {
 	return dx * dx + dy * dy + dz * dz <= metres * metres;
 }
 resourceExport(CORE.resource);
-const log$7 = createLogger(GetCurrentResourceName()), gates = new Set();
+const log$8 = createLogger(GetCurrentResourceName()), gates = new Set();
 on("playerDropped", () => {
 	let source = Number(globalThis.source);
 	for (let gate of gates) gate.release(source);
@@ -430,11 +430,11 @@ var ClientGate = class {
 		this.refusals.set(source, {
 			at: now,
 			skipped: 0
-		}), log$7.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${typeof reason == "string" ? reason : reason()}${more}`);
+		}), log$8.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${typeof reason == "string" ? reason : reason()}${more}`);
 	}
 };
 // ../../../node_modules/@aicore-fivem/lib/src/server/callback.ts
-const log$6 = createLogger(GetCurrentResourceName()), resource$7 = GetCurrentResourceName(), REFUSED = Symbol("refused");
+const log$7 = createLogger(GetCurrentResourceName()), resource$7 = GetCurrentResourceName(), REFUSED = Symbol("refused");
 function onClientCallback(name, first, second) {
 	let [handler, options] = typeof first == "function" ? [first, second ?? {}] : [second, first], gate = new ClientGate(name, options, 20);
 	onNet(requestEvent(name), async (caller, id, ...raw) => {
@@ -446,7 +446,7 @@ function onClientCallback(name, first, second) {
 			let result = await gate.run(source, REFUSED, () => handler(source, ...args));
 			result === REFUSED ? emitNet(responseEvent(caller), source, id, !1, null) : emitNet(responseEvent(caller), source, id, !0, result ?? null);
 		} catch (error) {
-			log$6.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
+			log$7.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
 		}
 	});
 }
@@ -1112,7 +1112,7 @@ function nearestPlayerTo(source, metres, filter) {
 	return best;
 }
 // ../../../node_modules/@aicore-fivem/lib/src/server/players.ts
-const log$5 = createLogger(GetCurrentResourceName()), dropped = new Set();
+const log$6 = createLogger(GetCurrentResourceName()), dropped = new Set();
 let listening$1 = !1;
 function onDropped(fn) {
 	listening$1 || (listening$1 = !0, on("playerDropped", () => {
@@ -1133,15 +1133,15 @@ function onCharacter(handlers) {
 	let live = new Map(), deliver = (source, character) => {
 		if (live.set(source, character.id), handlers.loaded) try {
 			let result = handlers.loaded(source, character);
-			result instanceof Promise && result.catch((error) => log$5.error(`character loaded handler failed for ${source}`, error));
+			result instanceof Promise && result.catch((error) => log$6.error(`character loaded handler failed for ${source}`, error));
 		} catch (error) {
-			log$5.error(`character loaded handler failed for ${source}`, error);
+			log$6.error(`character loaded handler failed for ${source}`, error);
 		}
 	}, end = (source, charId, reason) => {
 		if (live.delete(source)) try {
 			handlers.unloaded?.(source, charId, reason);
 		} catch (error) {
-			log$5.error(`character unloaded handler failed for ${source}`, error);
+			log$6.error(`character unloaded handler failed for ${source}`, error);
 		}
 	};
 	on(CORE.playerLoadedEvent, (source, character) => {
@@ -15454,7 +15454,7 @@ const mysql$1 = {
 	startTransaction: (work) => runStartTransaction$1(work).catch((error) => (console.error(errorText$1(resource$3, error)), !1)),
 	setPoolSize: setPoolSize$1,
 	close: closePool$1
-}, log$2 = createLogger("aicore-lib"), CREATE_TABLE = /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+`?([A-Za-z0-9_]+)`?\s*\(/i, NON_COLUMN_LINE = /^(PRIMARY|UNIQUE|KEY|INDEX|CONSTRAINT|FOREIGN|FULLTEXT|SPATIAL|CHECK)\b/i;
+}, log$3 = createLogger("aicore-lib"), CREATE_TABLE = /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+`?([A-Za-z0-9_]+)`?\s*\(/i, NON_COLUMN_LINE = /^(PRIMARY|UNIQUE|KEY|INDEX|CONSTRAINT|FOREIGN|FULLTEXT|SPATIAL|CHECK)\b/i;
 function stripComments(sql) {
 	return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*--.*$/gm, "");
 }
@@ -15500,12 +15500,12 @@ async function createDatabaseTables(resource, file) {
 	for (let sql of statements) {
 		let statement = parseStatement(sql);
 		if (!statement) {
-			log$2.warn(`${resource}/${file}: skipped statement (only CREATE TABLE IF NOT EXISTS is applied)`);
+			log$3.warn(`${resource}/${file}: skipped statement (only CREATE TABLE IF NOT EXISTS is applied)`);
 			continue;
 		}
 		let columns = await existingColumns(statement.table);
-		if (!columns) await mysql$1.query(statement.sql), log$2.info(`^2created table ${statement.table}^7 (${resource})`);
-		else for (let [name, definition] of statement.columns) columns.has(name) || (await mysql$1.query(`ALTER TABLE \`${statement.table}\` ADD COLUMN ${definition}`), log$2.info(`^2added column ${statement.table}.${name}^7 (${resource})`));
+		if (!columns) await mysql$1.query(statement.sql), log$3.info(`^2created table ${statement.table}^7 (${resource})`);
+		else for (let [name, definition] of statement.columns) columns.has(name) || (await mysql$1.query(`ALTER TABLE \`${statement.table}\` ADD COLUMN ${definition}`), log$3.info(`^2added column ${statement.table}.${name}^7 (${resource})`));
 	}
 }
 // ../../../node_modules/@aicore-fivem/lib/src/fivem/byResource.ts
@@ -15691,6 +15691,7 @@ const EVENTS = {
 	takeKey: "mb-properties:takeKey",
 	sell: "mb-properties:sell",
 	buyFurniture: "mb-properties:buyFurniture",
+	furniture: "mb-properties:client:furniture",
 	inside: "mb-properties:client:inside"
 }, INSIDE_META = "property";
 function readSettings(raw) {
@@ -21229,7 +21230,7 @@ const mysql = {
 	startTransaction: (work) => runStartTransaction(work).catch((error) => (console.error(errorText(resource, error)), !1)),
 	setPoolSize,
 	close: closePool
-}, ownedFlags = new GlobalGroup("prop:", stateBoolean), log$1 = createLogger(ResourceName), owners = new class {
+}, ownedFlags = new GlobalGroup("prop:", stateBoolean), log$2 = createLogger(ResourceName), owners = new class {
 	byProperty = new Map();
 	byChar = new Map();
 	selling = new Set();
@@ -21248,7 +21249,7 @@ const mysql = {
 			o && o.owner !== charId && (o.keys.set(charId, r.name), this.index(charId, r.property, "key"));
 		}
 		for (let id of this.byProperty.keys()) ownedFlags.set(id, !0);
-		log$1.info(`${this.byProperty.size} owned properties loaded`);
+		log$2.info(`${this.byProperty.size} owned properties loaded`);
 	}
 	index(charId, id, access) {
 		let list = this.byChar.get(charId);
@@ -21282,7 +21283,7 @@ const mysql = {
 				price
 			]);
 		} catch (error) {
-			return this.byProperty.delete(id), log$1.error(`buying ${id} failed`, error), !1;
+			return this.byProperty.delete(id), log$2.error(`buying ${id} failed`, error), !1;
 		}
 		return this.index(charId, id, "owner"), ownedFlags.set(id, !0), !0;
 	}
@@ -21306,10 +21307,10 @@ const mysql = {
 			id,
 			charId,
 			name.slice(0, 64)
-		]).catch((error) => log$1.error("key save failed", error)));
+		]).catch((error) => log$2.error("key save failed", error)));
 	}
 	takeKey(id, charId) {
-		return this.selling.has(id) || !this.byProperty.get(id)?.keys.delete(charId) ? !1 : (this.index(charId, id, null), mysql.query("DELETE FROM mb_properties_keys WHERE property = ? AND char_id = ?", [id, charId]).catch((error) => log$1.error("key delete failed", error)), !0);
+		return this.selling.has(id) || !this.byProperty.get(id)?.keys.delete(charId) ? !1 : (this.index(charId, id, null), mysql.query("DELETE FROM mb_properties_keys WHERE property = ? AND char_id = ?", [id, charId]).catch((error) => log$2.error("key delete failed", error)), !0);
 	}
 }();
 function sendAccess(sourceOf, charId, id, access) {
@@ -21317,8 +21318,8 @@ function sendAccess(sourceOf, charId, id, access) {
 	source !== null && emitNet(EVENTS.access, source, id, access);
 }
 // resource/server/lifecycle.ts
-const log = createLogger(ResourceName);
-aiLogChannels({ properties: {} }), createDatabaseTables(ResourceName, "sql/main.sql").then(() => owners.load()).catch((error) => log.error("database setup failed", error)), onCharacter({
+const log$1 = createLogger(ResourceName);
+aiLogChannels({ properties: {} }), createDatabaseTables(ResourceName, "sql/main.sql").then(() => owners.load()).catch((error) => log$1.error("database setup failed", error)), onCharacter({
 	loaded: (source) => {
 		let id = core.GetMeta(source, INSIDE_META), property = typeof id == "string" ? content.properties.get(id) : void 0;
 		property && interiors.move(source, property.door, null);
@@ -21326,39 +21327,7 @@ aiLogChannels({ properties: {} }), createDatabaseTables(ResourceName, "sql/main.
 	unloaded: (source) => interiors.forget(source)
 }), onStop(() => interiors.stop());
 // resource/server/players.ts
-const sourceOf = (charId) => core.GetSourceByCharId(charId), nameOf = (source) => online.name(source), isPolice = (source) => online.onDutyIn(source, content.settings.value.policeJobs), idArgs = oneArg((v) => readText(v, 64));
-onClientCallback(EVENTS.mine, (source) => {
-	let charId = online.charId(source);
-	return {
-		ok: !0,
-		list: charId === void 0 ? [] : owners.accessList(charId)
-	};
-}, { rate: {
-	count: 2,
-	windowMs: 1e4
-} }), onClientCallback(EVENTS.buy, {
-	args: idArgs,
-	lock: !0
-}, async (source, id) => {
-	let property = content.properties.get(id), charId = online.charId(source);
-	if (!property || charId === void 0 || !isNear(source, property.door, 3)) return fail("PROP_ERR_FAR");
-	if (owners.get(id)) return fail("PROP_ERR_OWNED");
-	let account = content.settings.value.account;
-	return core.RemoveMoney(source, account, property.price, `property:${id}`) ? await owners.buy(id, charId, nameOf(source), property.price) ? (sendAccess(sourceOf, charId, id, "owner"), notify(source, Locale("PROP_BOUGHT", property.label), "success"), aiLog("properties", `bought ${id}`, {
-		source,
-		metadata: { price: property.price }
-	}), { ok: !0 }) : (core.AddMoney(source, account, property.price, `property:${id}:refund`), fail("PROP_ERR_OWNED")) : fail("PROP_ERR_MONEY");
-}), onClientCallback(EVENTS.enter, {
-	args: idArgs,
-	lock: !0
-}, (source, id) => {
-	let property = content.properties.get(id), interior = property ? content.interiors.get(property.interior) : void 0, charId = online.charId(source);
-	return !property || !interior || charId === void 0 || !isNear(source, property.door, 3) ? fail("PROP_ERR_FAR") : vehicleOf(source) ? fail("PROP_ERR_VEHICLE") : !owners.accessOf(id, charId) && !(content.settings.value.policeEnter && isPolice(source) && owners.get(id)) ? fail("PROP_ERR_LOCKED") : (interiors.move(source, interior.entry, id), { ok: !0 });
-}), onClientCallback(EVENTS.exit, (source) => {
-	let property = content.properties.get(inside.get(source) ?? "");
-	return property ? (interiors.move(source, property.door, null), { ok: !0 }) : fail("PROP_ERR_FAR");
-}, { lock: !0 });
-// resource/server/inside.ts
+const sourceOf = (charId) => core.GetSourceByCharId(charId), nameOf = (source) => online.name(source), log = createLogger("mb-properties");
 function ownedInside(source) {
 	let id = inside.get(source), charId = online.charId(source), property = id ? content.properties.get(id) : void 0;
 	return property && charId !== void 0 && owners.accessOf(property.id, charId) === "owner" ? property : null;
@@ -21371,21 +21340,47 @@ onClientCallback(EVENTS.stash, (source) => {
 	let name = `property_${property.id}_${owner}`, settings = content.settings.value;
 	return inventory.registerStash(name, property.label, settings.stashSlots, settings.stashWeight), inventory.openInventory(source, name) ? { ok: !0 } : fail("PROP_ERR_FAR");
 }), onClientCallback(EVENTS.buyFurniture, {
-	args: oneArg((v) => readText(v, 64)),
+	args: (raw) => {
+		let [name, x, y, z, heading] = raw;
+		if (typeof name != "string") return null;
+		let id = name.trim().slice(0, 64);
+		if (!id) return null;
+		let xn = Number(x), yn = Number(y), zn = Number(z), hn = Number(heading);
+		return !Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(zn) || !Number.isFinite(hn) ? null : [
+			id,
+			xn,
+			yn,
+			zn,
+			hn
+		];
+	},
 	lock: !0
-}, (source, name) => {
+}, async (source, name, x, y, z, heading) => {
 	let property = ownedInside(source);
 	if (!property) return fail("PROP_ERR_OWNER");
 	let item = content.furniture.get(name);
 	if (!item) return fail("PROP_ERR_FAR");
 	let settings = content.settings.value;
-	return core.RemoveMoney(source, settings.account, item.price, "furniture") ? (aiLog("properties", `bought furniture ${item.id}`, {
+	if (!core.RemoveMoney(source, settings.account, item.price, "furniture")) return fail("PROP_ERR_MONEY");
+	try {
+		await mysql.query("INSERT INTO mb_properties_furniture (property, model, x, y, z, heading) VALUES (?, ?, ?, ?, ?, ?)", [
+			property.id,
+			item.model,
+			x,
+			y,
+			z,
+			heading
+		]);
+	} catch (error) {
+		return core.AddMoney(source, settings.account, item.price, "furniture:refund"), log.error("furniture save failed", error), fail("PROP_ERR_FAR");
+	}
+	return aiLog("properties", `bought furniture ${item.id}`, {
 		source,
 		metadata: {
 			property: property.id,
 			item: item.id
 		}
-	}), { ok: !0 }) : fail("PROP_ERR_MONEY");
+	}), { ok: !0 };
 }), onClientCallback(EVENTS.keys, (source) => {
 	let property = ownedInside(source);
 	return property ? {
@@ -21412,9 +21407,51 @@ onClientCallback(EVENTS.stash, (source) => {
 	let settings = content.settings.value, refund = Math.floor(property.price * settings.sellPercent / 100), lost = await owners.sell(property.id);
 	if (!lost) return fail("PROP_ERR_SELL");
 	for (let charId of lost) sendAccess(sourceOf, charId, property.id, !1);
-	for (let [other, id] of inside) id === property.id && interiors.move(other, property.door, null);
+	for (let [other, id] of inside) id === property.id && (interiors.move(other, property.door, null), emitNet(EVENTS.furniture, other, null, []));
 	return refund > 0 && core.AddMoney(source, settings.account, refund, `property:${property.id}:sell`), notify(source, Locale("PROP_SOLD", property.label, refund), "success"), aiLog("properties", `sold ${property.id}`, {
 		source,
 		metadata: { refund }
 	}), { ok: !0 };
+}, { lock: !0 });
+async function loadFurniture(property) {
+	return (await mysql.query("SELECT model, x, y, z, heading FROM mb_properties_furniture WHERE property = ?", [property])).map((r) => ({
+		model: r.model,
+		x: Number(r.x),
+		y: Number(r.y),
+		z: Number(r.z),
+		heading: Number(r.heading)
+	}));
+}
+// resource/server/door.ts
+const isPolice = (source) => online.onDutyIn(source, content.settings.value.policeJobs), idArgs = oneArg((v) => readText(v, 64));
+onClientCallback(EVENTS.mine, (source) => {
+	let charId = online.charId(source);
+	return {
+		ok: !0,
+		list: charId === void 0 ? [] : owners.accessList(charId)
+	};
+}, { rate: {
+	count: 2,
+	windowMs: 1e4
+} }), onClientCallback(EVENTS.buy, {
+	args: idArgs,
+	lock: !0
+}, async (source, id) => {
+	let property = content.properties.get(id), charId = online.charId(source);
+	if (!property || charId === void 0 || !isNear(source, property.door, 3)) return fail("PROP_ERR_FAR");
+	if (owners.get(id)) return fail("PROP_ERR_OWNED");
+	let account = content.settings.value.account;
+	return core.RemoveMoney(source, account, property.price, `property:${id}`) ? await owners.buy(id, charId, nameOf(source), property.price) ? (sendAccess(sourceOf, charId, id, "owner"), notify(source, Locale("PROP_BOUGHT", property.label), "success"), aiLog("properties", `bought ${id}`, {
+		source,
+		metadata: { price: property.price }
+	}), { ok: !0 }) : (core.AddMoney(source, account, property.price, `property:${id}:refund`), fail("PROP_ERR_OWNED")) : fail("PROP_ERR_MONEY");
+}), onClientCallback(EVENTS.enter, {
+	args: idArgs,
+	lock: !0
+}, (source, id) => {
+	let property = content.properties.get(id), interior = property ? content.interiors.get(property.interior) : void 0, charId = online.charId(source);
+	return !property || !interior || charId === void 0 || !isNear(source, property.door, 3) ? fail("PROP_ERR_FAR") : vehicleOf(source) ? fail("PROP_ERR_VEHICLE") : !owners.accessOf(id, charId) && !(content.settings.value.policeEnter && isPolice(source) && owners.get(id)) ? fail("PROP_ERR_LOCKED") : (interiors.move(source, interior.entry, id), loadFurniture(id).then((items) => emitNet(EVENTS.furniture, source, id, items)), { ok: !0 });
+}), onClientCallback(EVENTS.exit, (source) => {
+	let property = content.properties.get(inside.get(source) ?? "");
+	return property ? (interiors.move(source, property.door, null), emitNet(EVENTS.furniture, source, null, []), { ok: !0 }) : fail("PROP_ERR_FAR");
 }, { lock: !0 });

@@ -4,6 +4,7 @@ import { CORE } from "@aicore-fivem/shared";
 import { EVENTS, type Access } from "common/property";
 import { owned, world } from "./content";
 import { Homes } from "./homes";
+import { clearFurniture, spawnFurniture } from "./furniture";
 
 const homes = new Homes();
 void homes.load();
@@ -35,6 +36,23 @@ onServerEvent(
   },
   (id, to) => {
     homes.setInside(id);
+    if (!id) clearFurniture();
     void player.teleport(to, { heading: to.heading });
+  },
+);
+onServerEvent(
+  EVENTS.furniture,
+  {
+    args: ([id, items]): [string | null, unknown] | null =>
+      (id === null || typeof id === "string") && Array.isArray(items)
+        ? [id ?? null, items]
+        : null,
+  },
+  async (id, items) => {
+    if (!id) {
+      clearFurniture();
+      return;
+    }
+    await spawnFurniture(items);
   },
 );

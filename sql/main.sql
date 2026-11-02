@@ -23,3 +23,16 @@ CREATE TABLE IF NOT EXISTS `mb_properties_keys` (
   PRIMARY KEY (`property`, `char_id`),
   KEY `char_id` (`char_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Placed furniture inside a property. Re-spawned for everyone who enters.
+CREATE TABLE IF NOT EXISTS mb_properties_furniture (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  property VARCHAR(48) NOT NULL,
+  model VARCHAR(64) NOT NULL,
+  x DOUBLE NOT NULL,
+  y DOUBLE NOT NULL,
+  z DOUBLE NOT NULL,
+  heading DOUBLE NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY property (property)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

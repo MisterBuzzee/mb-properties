@@ -31,8 +31,10 @@ export const EVENTS = {
   takeKey: "mb-properties:takeKey",
   /** Callback: () -> { ok } sells the property the player owns and is in. */
   sell: "mb-properties:sell",
-  /** Callback: (name) -> { ok } buys a furniture item (deducts money). */
+  /** Callback: (name, x, y, z, heading) -> { ok } buys and places a furniture item (deducts money, persists). */
   buyFurniture: "mb-properties:buyFurniture",
+  /** Server -> player: (id | null, items) placed furniture in the property (or cleared on exit). */
+  furniture: "mb-properties:client:furniture",
   /** Server -> player: (id | null, to: Vec4) the player is inside this property now (or left): teleport to `to`. */
   inside: "mb-properties:client:inside",
 } as const;

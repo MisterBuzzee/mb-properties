@@ -3,6 +3,7 @@ import { isRecord, sleep } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
 import { EVENTS, type Furniture, type Property } from "common/property";
 import { call, content, owned } from "./content";
+import { trackFurniture } from "./furniture";
 
 /** The door of a property: buy it when nobody owns it, else go in. */
 export async function door(p: Property): Promise<void> {
@@ -70,9 +71,15 @@ async function buyFurniture(): Promise<void> {
   if (!pick || pick === "MENU_BACK") return;
   const item = list.find((f: Furniture) => f.id === pick);
   if (!item) return;
-  const ok = await call(EVENTS.buyFurniture, [item.id]);
+  const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
+  const heading = GetEntityHeading(cache.ped);
+  const rad = (heading * Math.PI) / 180;
+  const x = px + Math.sin(rad) * 1.5;
+  const y = py + Math.cos(rad) * 1.5;
+  const z = pz;
+  const ok = await call(EVENTS.buyFurniture, [item.id, x, y, z, heading]);
   if (!ok) return;
-  // Spawn the prop in front of the player (non-persistent for now).
+  // Spawn the prop in front of the player (persisted on the server).
   const hash = GetHashKey(item.model);
   RequestModel(hash);
   let tries = 0;
@@ -81,12 +88,8 @@ async function buyFurniture(): Promise<void> {
     tries += 1;
   }
   if (!HasModelLoaded(hash)) return;
-  const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
-  const heading = GetEntityHeading(cache.ped);
-  const rad = (heading * Math.PI) / 180;
-  const x = px + Math.sin(rad) * 1.5;
-  const y = py + Math.cos(rad) * 1.5;
-  const obj = CreateObject(hash, x, y, pz, false, false, false);
+  const obj = CreateObject(hash, x, y, z, false, false, false);
+  trackFurniture(obj);
   SetEntityHeading(obj, heading);
   PlaceObjectOnGroundProperly(obj);
   SetModelAsNoLongerNeeded(hash);

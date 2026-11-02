@@ -10,9 +10,13 @@ import { fail, oneArg, readId, readText } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
 import { EVENTS, type Property } from "common/property";
 import { content, core } from "./content";
+import { createLogger } from "@aicore-fivem/lib/shared";
+import { mysql } from "@aicore-fivem/mysql";
 import { inside, interiors } from "./interiors";
 import { nameOf, sourceOf } from "./players";
 import { owners, sendAccess } from "./store";
+
+const log = createLogger("mb-properties");
 
 /** The property the player is in, when they own it. */
 function ownedInside(source: number): Property | null {
@@ -54,8 +58,25 @@ onClientCallback(EVENTS.stash, (source) => {
 
 onClientCallback(
   EVENTS.buyFurniture,
-  { args: oneArg((v) => readText(v, 64)), lock: true },
-  (source, name) => {
+  {
+    args: (raw) => {
+      const [name, x, y, z, heading] = raw;
+      if (typeof name !== "string") return null;
+      const id = name.trim().slice(0, 64);
+      if (!id) return null;
+      const xn = Number(x), yn = Number(y), zn = Number(z), hn = Number(heading);
+      if (
+        !Number.isFinite(xn) ||
+        !Number.isFinite(yn) ||
+        !Number.isFinite(zn) ||
+        !Number.isFinite(hn)
+      )
+        return null;
+      return [id, xn, yn, zn, hn];
+    },
+    lock: true,
+  },
+  async (source, name, x, y, z, heading) => {
     const property = ownedInside(source);
     if (!property) return fail("PROP_ERR_OWNER");
     const item = content.furniture.get(name);
@@ -63,6 +84,16 @@ onClientCallback(
     const settings = content.settings.value;
     if (!core.RemoveMoney(source, settings.account, item.price, "furniture"))
       return fail("PROP_ERR_MONEY");
+    try {
+      await mysql.query(
+        "INSERT INTO mb_properties_furniture (property, model, x, y, z, heading) VALUES (?, ?, ?, ?, ?, ?)",
+        [property.id, item.model, x, y, z, heading],
+      );
+    } catch (error) {
+      core.AddMoney(source, settings.account, item.price, "furniture:refund");
+      log.error("furniture save failed", error);
+      return fail("PROP_ERR_FAR");
+    }
     aiLog("properties", `bought furniture ${item.id}`, {
       source,
       metadata: { property: property.id, item: item.id },
@@ -124,7 +155,10 @@ onClientCallback(
     if (!lost) return fail("PROP_ERR_SELL");
     for (const charId of lost) sendAccess(sourceOf, charId, property.id, false);
     for (const [other, id] of inside)
-      if (id === property.id) interiors.move(other, property.door, null);
+      if (id === property.id) {
+        interiors.move(other, property.door, null);
+        emitNet(EVENTS.furniture, other, null, []);
+      }
     if (refund > 0)
       core.AddMoney(
         source,
@@ -141,3 +175,21 @@ onClientCallback(
   },
   { lock: true },
 );
+
+/** Placed furniture for a property (used to re-spawn on enter). */
+export async function loadFurniture(
+  property: string,
+): Promise<Array<{ model: string; x: number; y: number; z: number; heading: number }>> {
+  const rows = await mysql.query<
+    Array<{ model: string; x: number; y: number; z: number; heading: number }>
+  >("SELECT model, x, y, z, heading FROM mb_properties_furniture WHERE property = ?", [
+    property,
+  ]);
+  return rows.map((r) => ({
+    model: r.model,
+    x: Number(r.x),
+    y: Number(r.y),
+    z: Number(r.z),
+    heading: Number(r.heading),
+  }));
+}
