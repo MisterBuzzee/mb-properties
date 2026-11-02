@@ -8,7 +8,7 @@ import { clearFurniture, spawnFurniture } from "./furniture";
 
 const homes = new Homes();
 void homes.load();
-on(CORE.clientPlayerLoadedEvent, () => void homes.load());
+on(CORE.clientPlayerLoadedEvent, () => { void homes.load(); FreezeEntityPosition(PlayerPedId(), false); });
 world.onChange("settings", () => homes.rebuild());
 owned.onChange((id) => homes.update(id));
 
@@ -37,6 +37,7 @@ onServerEvent(
   (id, to) => {
     homes.setInside(id);
     if (!id) clearFurniture();
+    FreezeEntityPosition(PlayerPedId(), false);
     void player.teleport(to, { heading: to.heading });
   },
 );

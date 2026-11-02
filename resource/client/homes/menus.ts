@@ -84,7 +84,7 @@ async function buyFurniture(): Promise<void> {
   if (!HasModelLoaded(hash)) return;
 
   // Freeze the player while placing.
-  FreezeEntityPosition(cache.ped, true);
+  FreezeEntityPosition(PlayerPedId(), true);
 
   // Start preview in front of the player.
   const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
@@ -126,7 +126,7 @@ async function buyFurniture(): Promise<void> {
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
-  FreezeEntityPosition(cache.ped, false);
+  FreezeEntityPosition(PlayerPedId(), false);
 
   if (cancelled) return;
 
@@ -193,7 +193,7 @@ async function manageFurniture(): Promise<void> {
     let t = 0;
     while (!HasModelLoaded(hash) && t < 100) { await sleep(10); t += 1; }
     if (!HasModelLoaded(hash)) return;
-    FreezeEntityPosition(cache.ped, true);
+    FreezeEntityPosition(PlayerPedId(), true);
     const preview = CreateObject(hash, Number(item.x), Number(item.y), Number(item.z), false, false, false);
     SetEntityAlpha(preview, 140, false);
     SetEntityCollision(preview, false, false);
@@ -228,7 +228,7 @@ async function manageFurniture(): Promise<void> {
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
     SetModelAsNoLongerNeeded(hash);
-    FreezeEntityPosition(cache.ped, false);
+    FreezeEntityPosition(PlayerPedId(), false);
     if (cancelled) return;
     const ok = await call(EVENTS.updateFurniture, [id, fx, fy, fz, fh]);
     if (!ok) return;
