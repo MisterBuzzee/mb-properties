@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>mb-properties</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@800&display=swap" rel="stylesheet">
+  <style>
+    :root { --green:#36ff9f; --green-hover:#2bcc7f; --green-text:#333333; --green-10:rgba(54,255,159,0.1); --green-15:rgba(54,255,159,0.15); --green-20:rgba(54,255,159,0.2); --panel:rgba(14,14,14,0.95); --page:#0e0e0e; --header:#141414; --row:#111111; --control:#222222; --control-hover:#333333; --line:rgba(255,255,255,0.04); --line-strong:rgba(255,255,255,0.1); --text:#ffffff; --text-2:rgba(255,255,255,0.8); --text-3:rgba(255,255,255,0.5); --text-4:rgba(255,255,255,0.22); --radius:0.6vh; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    html,body { width:100%; height:100%; overflow:hidden; font-family:"Inter",sans-serif; background:transparent; color:var(--text); font-size:1.4vh; }
+    #root { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+    #panel { pointer-events:auto; width:92vh; max-width:96vw; height:86vh; background:var(--panel); border:1px solid var(--line-strong); border-radius:1.2vh; box-shadow:0 0 4vh rgba(0,0,0,0.5); display:none; flex-direction:column; overflow:hidden; animation:pop .18s ease-out; }
+    #panel.show { display:flex; }
+    @keyframes pop { from{transform:scale(.96);opacity:0} to{transform:scale(1);opacity:1} }
+    .header { padding:1.6vh 1.8vh 1.2vh; border-bottom:1px solid var(--line-strong); display:flex; align-items:center; justify-content:space-between; gap:1.2vh; background:var(--header); }
+    .brand { font-family:"Unbounded","Inter",sans-serif; font-size:1.5vh; font-weight:800; letter-spacing:-0.01em; text-transform:uppercase; color:var(--green); }
+    .search { flex:1; max-width:34vh; padding:0.7vh 1.2vh; background:var(--control); border:1px solid var(--line-strong); border-radius:0.6vh; color:var(--text); font-size:1.3vh; outline:none; }
+    .search:focus { border-color:var(--green); box-shadow:0 0 0.8vh rgba(54,255,159,0.2); }
+    .close { padding:0.6vh 1.2vh; background:var(--green-15); border:1px solid var(--green); border-radius:0.6vh; color:var(--green); font-weight:600; cursor:pointer; font-size:1.1vh; }
+    .close:hover { background:var(--green); color:var(--green-text); }
+    .tabs { display:flex; gap:0.4vh; padding:0.8vh 1.8vh; border-bottom:1px solid var(--line-strong); overflow-x:auto; background:var(--header); }
+    .tab { padding:0.5vh 1.2vh; border-radius:0.6vh; cursor:pointer; font-size:1.2vh; color:var(--text-3); background:transparent; border:1px solid transparent; transition:all .12s; white-space:nowrap; }
+    .tab:hover { color:var(--text); background:rgba(255,255,255,0.05); }
+    .tab.active { color:var(--green); background:var(--green-15); border-color:var(--green); font-weight:600; }
+    .body { flex:1; display:flex; overflow:hidden; }
+    .grid { flex:1; overflow-y:auto; padding:1.4vh; display:grid; grid-template-columns:repeat(auto-fill,minmax(17vh,1fr)); gap:0.8vh; align-content:start; }
+    .grid::-webkit-scrollbar { width:0.6vh; }
+    .grid::-webkit-scrollbar-thumb { background:rgba(54,255,159,0.3); border-radius:0.3vh; }
+    .card { background:var(--row); border:1px solid var(--line); border-radius:0.8vh; padding:1.2vh 1vh; cursor:pointer; transition:all .12s; display:flex; flex-direction:column; align-items:center; gap:0.5vh; text-align:center; min-height:9vh; }
+    .card:hover { background:var(--control); border-color:var(--green); transform:translateY(-0.1vh); }
+    .card .icon { font-size:2vh; color:var(--green); }
+    .card .name { font-size:1.15vh; color:var(--text-2); word-break:break-word; line-height:1.3; font-weight:600; }
+    .card .price { font-size:1vh; color:var(--green); font-weight:700; }
+    .card .cat { font-size:0.9vh; color:var(--text-3); text-transform:uppercase; letter-spacing:0.05em; }
+    .footer { padding:0.8vh 1.8vh; border-top:1px solid var(--line-strong); display:flex; justify-content:space-between; align-items:center; font-size:1.1vh; color:var(--text-3); background:var(--header); }
+    .footer .count { color:var(--green); font-weight:700; }
+    .empty { color:var(--text-3); font-size:1.3vh; padding:4vh; text-align:center; grid-column:1/-1; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="panel">
+      <div class="header">
+        <div class="brand">Furniture Catalog</div>
+        <input class="search" id="search" placeholder="Search furniture..." />
+        <button class="close" id="closeBtn">Close</button>
+      </div>
+      <div class="tabs" id="tabs"></div>
+      <div class="body">
+        <div class="grid" id="grid"></div>
+      </div>
+      <div class="footer">
+        <span><span class="count" id="count">0</span> items</span>
+        <span>Click to place �� ESC to close</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    let items = [];
+    let activeCat = "all";
+    const panel = document.getElementById("panel");
+    const grid = document.getElementById("grid");
+    const tabs = document.getElementById("tabs");
+    const search = document.getElementById("search");
+    const count = document.getElementById("count");
+
+    function render() {
+      const q = (search.value || "").toLowerCase();
+      const filtered = items.filter((it) => {
+        if (activeCat !== "all" && it.category !== activeCat) return false;
+        if (q && !(it.label.toLowerCase().includes(q) || it.category.toLowerCase().includes(q))) return false;
+        return true;
+      });
+      grid.innerHTML = "";
+      if (filtered.length === 0) {
+        const e = document.createElement("div");
+        e.className = "empty";
+        e.textContent = "No furniture available";
+        grid.appendChild(e);
+      } else {
+        for (const it of filtered) {
+          const c = document.createElement("div");
+          c.className = "card";
+          c.innerHTML = `<div class="icon">🛋️</div><div class="name">${escape(it.label)}</div><div class="cat">${escape(it.category)}</div><div class="price">$${it.price}</div>`;
+          c.addEventListener("click", () => {
+            fetch(`https://mb-properties/selectFurniture`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: it.id }),
+            });
+          });
+          grid.appendChild(c);
+        }
+      }
+      count.textContent = filtered.length;
+    }
+
+    function escape(s) { return String(s).replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+    function buildTabs() {
+      const cats = ["all", ...new Set(items.map((i) => i.category))];
+      tabs.innerHTML = "";
+      for (const c of cats) {
+        const t = document.createElement("div");
+        t.className = "tab" + (c === activeCat ? " active" : "");
+        t.textContent = c === "all" ? "All" : c.charAt(0).toUpperCase() + c.slice(1);
+        t.addEventListener("click", () => {
+          activeCat = c;
+          buildTabs();
+          render();
+        });
+        tabs.appendChild(t);
+      }
+    }
+
+    window.addEventListener("message", (e) => {
+      const d = e.data || {};
+      if (d.action === "open") {
+        items = Array.isArray(d.items) ? d.items : [];
+        activeCat = "all";
+        buildTabs();
+        render();
+        panel.classList.add("show");
+      } else if (d.action === "close") {
+        panel.classList.remove("show");
+      }
+    });
+
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      fetch(`https://mb-properties/closeFurniture`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    });
+    search.addEventListener("input", render);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        fetch(`https://mb-properties/closeFurniture`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      }
+    });
+  </script>
+</body>
+</html>

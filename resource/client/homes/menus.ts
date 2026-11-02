@@ -38,7 +38,7 @@ export async function insideMenu(): Promise<void> {
   if (pick === "exit") await move(EVENTS.exit);
   else if (pick === "stash") await call(EVENTS.stash);
   else if (pick === "keys") await keys();
-  else if (pick === "furniture") await buyFurniture();
+  else if (pick === "furniture") await openFurnitureCatalog();
   else if (pick === "manage") await manageFurniture();
   else if (pick === "sell") {
     const sure = await menu({
@@ -55,24 +55,17 @@ export async function insideMenu(): Promise<void> {
   }
 }
 
-async function buyFurniture(): Promise<void> {
+async function openFurnitureCatalog(): Promise<void> {
   const list = [...content.furniture.values()];
   if (list.length === 0) {
     notify("No furniture available", "info");
     return;
   }
-  const pick = await menu({
-    title: "Buy furniture",
-    items: list.map((f: Furniture) => ({
-      id: f.id,
-      label: `${f.label} ($${f.price})`,
-      icon: "couch",
-    })),
-    back: true,
-  });
-  if (!pick || pick === "MENU_BACK") return;
-  const item = list.find((f: Furniture) => f.id === pick);
-  if (!item) return;
+  SetNuiFocus(true, true);
+  SendNUIMessage({ action: "open", items: list });
+}
+
+async function placeFurniture(item: Furniture): Promise<void> {
 
   const hash = GetHashKey(item.model);
   RequestModel(hash);
@@ -298,3 +291,18 @@ async function move(name: string, args: unknown[] = []): Promise<void> {
   await fadeOut();
   if (!(await call(name, args))) await fadeIn(300);
 }
+
+RegisterNuiCallback("selectFurniture", (data: unknown, cb: (v: unknown) => void) => {
+  const id = (data as { id?: string } | undefined)?.id;
+  const item = [...content.furniture.values()].find((f: Furniture) => f.id === id);
+  SetNuiFocus(false, false);
+  SendNUIMessage({ action: "close" });
+  if (item) void placeFurniture(item);
+  cb(true);
+});
+
+RegisterNuiCallback("closeFurniture", (_data: unknown, cb: (v: unknown) => void) => {
+  SetNuiFocus(false, false);
+  SendNUIMessage({ action: "close" });
+  cb(true);
+});

@@ -11,6 +11,8 @@ node_version '22'
 client_script 'dist/client.js'
 server_script 'dist/server.js'
 
+ui_page 'web/index.html'
+
 
 dependencies {
 	'/onesync',
@@ -23,4 +25,5 @@ files {
 	'data/properties.json',
 	'data/interiors.json',
 	'data/furniture.json',
+	'web/index.html',
 }
