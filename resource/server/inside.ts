@@ -176,6 +176,76 @@ onClientCallback(
   { lock: true },
 );
 
+onClientCallback(EVENTS.listFurniture, async (source) => {
+  const property = ownedInside(source);
+  if (!property) return fail("PROP_ERR_OWNER");
+    const rows = await mysql.query<
+      Array<{ id: number; model: string; x: number; y: number; z: number; heading: number }>
+    >("SELECT id, model, x, y, z, heading FROM mb_properties_furniture WHERE property = ?", [
+      property.id,
+    ]);
+    return {
+      ok: true,
+      items: rows.map((r) => ({
+        id: Number(r.id),
+        model: r.model,
+        x: Number(r.x),
+        y: Number(r.y),
+        z: Number(r.z),
+        heading: Number(r.heading),
+      })),
+    };
+});
+
+onClientCallback(
+  EVENTS.removeFurniture,
+  { args: oneArg(readId), lock: true },
+  async (source, id) => {
+    const property = ownedInside(source);
+    if (!property) return fail("PROP_ERR_OWNER");
+    try {
+      await mysql.query("DELETE FROM mb_properties_furniture WHERE id = ? AND property = ?", [
+        id,
+        property.id,
+      ]);
+    } catch (error) {
+      log.error("furniture remove failed", error);
+      return fail("PROP_ERR_FAR");
+    }
+    return { ok: true };
+  },
+);
+
+onClientCallback(
+  EVENTS.updateFurniture,
+  {
+    args: (raw) => {
+      const [id, x, y, z, heading] = raw;
+      const nid = Number(id);
+      if (!Number.isInteger(nid)) return null;
+      const xn = Number(x), yn = Number(y), zn = Number(z), hn = Number(heading);
+      if (!Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(zn) || !Number.isFinite(hn))
+        return null;
+      return [nid, xn, yn, zn, hn];
+    },
+    lock: true,
+  },
+  async (source, id, x, y, z, heading) => {
+    const property = ownedInside(source);
+    if (!property) return fail("PROP_ERR_OWNER");
+    try {
+      await mysql.query(
+        "UPDATE mb_properties_furniture SET x = ?, y = ?, z = ?, heading = ? WHERE id = ? AND property = ?",
+        [x, y, z, heading, id, property.id],
+      );
+    } catch (error) {
+      log.error("furniture move failed", error);
+      return fail("PROP_ERR_FAR");
+    }
+    return { ok: true };
+  },
+);
+
 /** Placed furniture for a property (used to re-spawn on enter). */
 export async function loadFurniture(
   property: string,

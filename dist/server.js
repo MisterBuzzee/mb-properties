@@ -15691,6 +15691,9 @@ const EVENTS = {
 	takeKey: "mb-properties:takeKey",
 	sell: "mb-properties:sell",
 	buyFurniture: "mb-properties:buyFurniture",
+	listFurniture: "mb-properties:listFurniture",
+	removeFurniture: "mb-properties:removeFurniture",
+	updateFurniture: "mb-properties:updateFurniture",
 	furniture: "mb-properties:client:furniture",
 	inside: "mb-properties:client:inside"
 }, INSIDE_META = "property";
@@ -21412,7 +21415,62 @@ onClientCallback(EVENTS.stash, (source) => {
 		source,
 		metadata: { refund }
 	}), { ok: !0 };
-}, { lock: !0 });
+}, { lock: !0 }), onClientCallback(EVENTS.listFurniture, async (source) => {
+	let property = ownedInside(source);
+	return property ? {
+		ok: !0,
+		items: (await mysql.query("SELECT id, model, x, y, z, heading FROM mb_properties_furniture WHERE property = ?", [property.id])).map((r) => ({
+			id: Number(r.id),
+			model: r.model,
+			x: Number(r.x),
+			y: Number(r.y),
+			z: Number(r.z),
+			heading: Number(r.heading)
+		}))
+	} : fail("PROP_ERR_OWNER");
+}), onClientCallback(EVENTS.removeFurniture, {
+	args: oneArg(readId),
+	lock: !0
+}, async (source, id) => {
+	let property = ownedInside(source);
+	if (!property) return fail("PROP_ERR_OWNER");
+	try {
+		await mysql.query("DELETE FROM mb_properties_furniture WHERE id = ? AND property = ?", [id, property.id]);
+	} catch (error) {
+		return log.error("furniture remove failed", error), fail("PROP_ERR_FAR");
+	}
+	return { ok: !0 };
+}), onClientCallback(EVENTS.updateFurniture, {
+	args: (raw) => {
+		let [id, x, y, z, heading] = raw, nid = Number(id);
+		if (!Number.isInteger(nid)) return null;
+		let xn = Number(x), yn = Number(y), zn = Number(z), hn = Number(heading);
+		return !Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(zn) || !Number.isFinite(hn) ? null : [
+			nid,
+			xn,
+			yn,
+			zn,
+			hn
+		];
+	},
+	lock: !0
+}, async (source, id, x, y, z, heading) => {
+	let property = ownedInside(source);
+	if (!property) return fail("PROP_ERR_OWNER");
+	try {
+		await mysql.query("UPDATE mb_properties_furniture SET x = ?, y = ?, z = ?, heading = ? WHERE id = ? AND property = ?", [
+			x,
+			y,
+			z,
+			heading,
+			id,
+			property.id
+		]);
+	} catch (error) {
+		return log.error("furniture move failed", error), fail("PROP_ERR_FAR");
+	}
+	return { ok: !0 };
+});
 async function loadFurniture(property) {
 	return (await mysql.query("SELECT model, x, y, z, heading FROM mb_properties_furniture WHERE property = ?", [property])).map((r) => ({
 		model: r.model,
