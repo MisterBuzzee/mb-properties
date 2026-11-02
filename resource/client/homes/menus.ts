@@ -100,17 +100,17 @@ async function buyFurniture(): Promise<void> {
 
   // Full control of the item: arrows move it, Q/Ctrl change height, scroll rotates.
   while (!confirmed && !cancelled) {
-    const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, false);
+    const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, true);
     const camRot: any = GetGameplayCamRot(2);
     const yaw = (camRot.z * Math.PI) / 180;
     const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
     const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
     const speed = 0.08;
     let dx = 0, dy = 0, dz = 0;
-    if (IsControlPressed(0, 172)) { dx += fwdX * speed; dy += fwdY * speed; }   // up
-    if (IsControlPressed(0, 173)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // down
-    if (IsControlPressed(0, 174)) { dx -= rightX * speed; dy -= rightY * speed; } // left
-    if (IsControlPressed(0, 175)) { dx += rightX * speed; dy += rightY * speed; } // right
+    if (IsControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }   // up
+    if (IsControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // down
+    if (IsControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; } // left
+    if (IsControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; } // right
     if (IsControlPressed(0, 44)) dz += speed;   // Q up
     if (IsControlPressed(0, 36)) dz -= speed;   // Ctrl down
     SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
@@ -122,7 +122,7 @@ async function buyFurniture(): Promise<void> {
     await sleep(0);
   }
 
-  const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, false);
+  const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
@@ -203,17 +203,17 @@ async function manageFurniture(): Promise<void> {
     let heading = Number(item.heading);
 
     while (!confirmed && !cancelled) {
-      const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, false);
+      const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, true);
       const camRot: any = GetGameplayCamRot(2);
       const yaw = (camRot.z * Math.PI) / 180;
       const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
       const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
       const speed = 0.08;
       let dx = 0, dy = 0, dz = 0;
-      if (IsControlPressed(0, 172)) { dx += fwdX * speed; dy += fwdY * speed; }
-      if (IsControlPressed(0, 173)) { dx -= fwdX * speed; dy -= fwdY * speed; }
-      if (IsControlPressed(0, 174)) { dx -= rightX * speed; dy -= rightY * speed; }
-      if (IsControlPressed(0, 175)) { dx += rightX * speed; dy += rightY * speed; }
+      if (IsControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }
+      if (IsControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }
+      if (IsControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; }
+      if (IsControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; }
       if (IsControlPressed(0, 44)) dz += speed;
       if (IsControlPressed(0, 36)) dz -= speed;
       SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
@@ -224,7 +224,7 @@ async function manageFurniture(): Promise<void> {
       if (IsControlJustPressed(0, 177)) cancelled = true;
       await sleep(0);
     }
-    const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, false);
+    const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
     SetModelAsNoLongerNeeded(hash);
