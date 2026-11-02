@@ -75,45 +75,53 @@ async function placeFurniture(item: Furniture): Promise<void> {
   }
   if (!HasModelLoaded(hash)) return;
 
-  // Hide the ped and take control of the item only.
+  // Hide the ped; we control the item, not the ped.
   SetEntityVisible(cache.ped, false, false);
   SetEntityAlpha(cache.ped, 0, false);
 
-  const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
-  const sph = GetEntityHeading(cache.ped);
-  const spr = (sph * Math.PI) / 180;
-  const preview = CreateObject(hash, spx + Math.sin(spr) * 2, spy + Math.cos(spr) * 2, spz, false, false, false);
+  const preview = CreateObject(hash, 0, 0, 0, false, false, false);
   SetEntityAlpha(preview, 200, false);
   SetEntityCollision(preview, false, false);
-  PlaceObjectOnGroundProperly(preview);
-  SetEntityHeading(preview, sph);
 
   let confirmed = false;
   let cancelled = false;
-  let heading = sph;
-  let zOffset = 0;
+  let heading = GetEntityHeading(cache.ped);
+  // Offset from camera: item stays in front of you, never vanishes.
+  let offFwd = 3.0;
+  let offRight = 0.0;
+  let offUp = 0.0;
 
   while (!confirmed && !cancelled) {
-    const [cx = 0, cy = 0, cz = 0] = GetEntityCoords(preview, true);
-    const camRot: any = GetGameplayCamRot(2);
-    const yaw = (camRot.z * Math.PI) / 180;
-    const fwdX = -Math.sin(yaw), fwdY = Math.cos(yaw);
-    const rightX = Math.cos(yaw), rightY = Math.sin(yaw);
-    const speed = 0.1;
-    let dx = 0, dy = 0, dz = 0;
-    if (IsDisabledControlPressed(0, 32)) { dx += fwdX * speed; dy += fwdY * speed; }   // W
-    if (IsDisabledControlPressed(0, 33)) { dx -= fwdX * speed; dy -= fwdY * speed; }   // S
-    if (IsDisabledControlPressed(0, 34)) { dx -= rightX * speed; dy -= rightY * speed; } // A
-    if (IsDisabledControlPressed(0, 35)) { dx += rightX * speed; dy += rightY * speed; } // D
-    if (IsDisabledControlPressed(0, 44)) dz += speed;   // Q up
-    if (IsDisabledControlPressed(0, 36)) dz -= speed;   // Ctrl down
-    SetEntityCoords(preview, cx + dx, cy + dy, cz + dz, false, false, false, false);
+    const cam: any = GetGameplayCamCoord();
+    const rot: any = GetGameplayCamRot(2);
+    const yaw = (rot.z * Math.PI) / 180;
+    const pitch = (rot.x * Math.PI) / 180;
+    const fwdX = -Math.sin(yaw) * Math.abs(Math.cos(pitch));
+    const fwdY = Math.cos(yaw) * Math.abs(Math.cos(pitch));
+    const fwdZ = Math.sin(pitch);
+    const rightX = Math.cos(yaw);
+    const rightY = Math.sin(yaw);
+    const upX = 0, upY = 0, upZ = 1;
+    const px = cam.x + fwdX * offFwd + rightX * offRight + upX * offUp;
+    const py = cam.y + fwdY * offFwd + rightY * offRight + upY * offUp;
+    const pz = cam.z + fwdZ * offFwd + upZ * offUp;
+    SetEntityCoords(preview, px, py, pz, false, false, false, false);
+    SetEntityHeading(preview, heading);
+    // Movement of the offset (item stays in view).
+    if (IsDisabledControlPressed(0, 32)) offFwd += 0.05;   // W
+    if (IsDisabledControlPressed(0, 33)) offFwd -= 0.05;   // S
+    if (IsDisabledControlPressed(0, 34)) offRight -= 0.05; // A
+    if (IsDisabledControlPressed(0, 35)) offRight += 0.05; // D
+    if (IsDisabledControlPressed(0, 44)) offUp += 0.05;    // Q
+    if (IsDisabledControlPressed(0, 36)) offUp -= 0.05;    // Ctrl
+    // Clamp so it stays near.
+    offFwd = Math.max(1, Math.min(8, offFwd));
+    offRight = Math.max(-4, Math.min(4, offRight));
+    offUp = Math.max(-2, Math.min(4, offUp));
     if (IsDisabledControlJustPressed(0, 241)) heading += 15; // scroll up
     if (IsDisabledControlJustPressed(0, 242)) heading -= 15; // scroll down
-    SetEntityHeading(preview, heading);
     if (IsDisabledControlJustPressed(0, 38)) confirmed = true;   // E
     if (IsDisabledControlJustPressed(0, 177)) cancelled = true;  // Backspace
-    // Disable player movement so the ped stays still.
     DisableControlAction(0, 30, true);
     DisableControlAction(0, 31, true);
     DisableControlAction(0, 32, true);
@@ -131,14 +139,11 @@ async function placeFurniture(item: Furniture): Promise<void> {
     await sleep(0);
   }
 
-    SetEntityVisible(cache.ped, true, false);
-    SetEntityAlpha(cache.ped, 255, false);
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
 
-  // Restore ped.
   SetEntityVisible(cache.ped, true, false);
   SetEntityAlpha(cache.ped, 255, false);
 
