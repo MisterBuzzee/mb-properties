@@ -1,0 +1,15 @@
+# Releases come from Conventional Commits on main (feat:, fix:, perf:...): see aifivem/.github.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    uses: aifivem/.github/.github/workflows/release.yml@main
+    secrets: inherit

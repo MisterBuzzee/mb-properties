@@ -1,0 +1,21 @@
+{
+  "$schema": "./schemas/interiors.schema.json",
+  "low": {
+    "label": "Small apartment",
+    "entry": {
+      "x": 261.4586,
+      "y": -998.8196,
+      "z": -99.0086,
+      "heading": 0
+    }
+  },
+  "medium": {
+    "label": "Apartment",
+    "entry": {
+      "x": 347.2686,
+      "y": -999.2955,
+      "z": -99.1962,
+      "heading": 0
+    }
+  }
+}

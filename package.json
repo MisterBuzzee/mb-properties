@@ -1,0 +1,46 @@
+{
+  "name": "mb-properties",
+  "version": "0.1.3",
+  "private": true,
+  "description": "Houses and apartments: buy, enter a private interior, stash, keys, sell",
+  "license": "GPL-3.0-only",
+  "author": {
+    "name": "TGIANN"
+  },
+  "repository": "github:aifivem/mb-properties",
+  "type": "module",
+  "fxDependencies": [
+    "/onesync",
+    "ai-core"
+  ],
+  "scripts": {
+    "lint": "oxlint --ignore-pattern \"dist/**\"",
+    "format": "prettier --write .",
+    "dev": "bun tsdown -- --watch",
+    "build": "aicore-db-types && bun tsdown -- && aicore-client-errors dist/client.js",
+    "typecheck": "tsc --noEmit -p resource/client/tsconfig.json && tsc --noEmit -p resource/server/tsconfig.json"
+  },
+  "dependencies": {
+    "@aicore-fivem/lib": "workspace:*",
+    "@aicore-fivem/shared": "workspace:*",
+    "@aicore-fivem/mysql": "workspace:*"
+  },
+  "devDependencies": {
+    "@aicore-fivem/build": "workspace:*",
+    "@citizenfx/client": "latest",
+    "@citizenfx/server": "latest",
+    "@types/bun": "latest",
+    "@types/node": "^22",
+    "fast-glob": "^3.3.3",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "oxlint": "^1.66.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^6.0.3"
+  },
+  "fxFiles": [
+    "data/settings.json",
+    "data/properties.json",
+    "data/interiors.json"
+  ]
+}

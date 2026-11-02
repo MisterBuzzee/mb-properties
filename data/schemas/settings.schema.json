@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-properties/data/settings.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    },
+    "account": {
+      "description": "Money account: Purchases take from and sales pay into this account.",
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 32
+    },
+    "sellPercent": {
+      "description": "Sale refund: Share of the price paid back when the owner sells.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "policeJobs": {
+      "description": "Police jobs",
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 32,
+        "pattern": "^[a-z0-9_]{2,32}$"
+      }
+    },
+    "policeEnter": {
+      "description": "Police can enter: On-duty police enter any owned property.",
+      "type": "boolean"
+    },
+    "stashSlots": {
+      "description": "Stash slots",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "stashWeight": {
+      "description": "Stash weight: In grams (150000 = 150 kg).",
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 10000000
+    },
+    "ownedBlip": {
+      "description": "Own property blip: How owners and key holders see their properties on the map.",
+      "type": "object",
+      "properties": {
+        "sprite": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 2
+        }
+      },
+      "required": [
+        "sprite",
+        "color",
+        "scale"
+      ]
+    },
+    "saleBlip": {
+      "description": "For sale blip: Properties for sale with the map switch on.",
+      "type": "object",
+      "properties": {
+        "sprite": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 2
+        }
+      },
+      "required": [
+        "sprite",
+        "color",
+        "scale"
+      ]
+    }
+  },
+  "required": [
+    "account",
+    "sellPercent",
+    "policeJobs",
+    "policeEnter",
+    "stashSlots",
+    "stashWeight"
+  ]
+}

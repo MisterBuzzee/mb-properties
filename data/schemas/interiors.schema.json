@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-properties/data/interiors.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    }
+  },
+  "patternProperties": {
+    "^[a-z0-9_]{2,32}$": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "Name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "entry": {
+          "description": "Entry point: Where players appear inside.",
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z",
+            "heading"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            },
+            "heading": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "required": [
+        "label",
+        "entry"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

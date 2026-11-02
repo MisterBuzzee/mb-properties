@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+fxmanifest.lua
+*.lua
+sql
+data
+resource/server/tables.ts
+bun.lock
+*.md
