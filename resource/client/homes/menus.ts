@@ -87,6 +87,7 @@ async function placeFurniture(item: Furniture): Promise<void> {
   SetEntityAlpha(preview, 140, false);
   SetEntityCollision(preview, false, false);
 
+  FreezeEntityPosition(PlayerPedId(), true);
   let confirmed = false;
   let cancelled = false;
   let heading = sph;
@@ -116,20 +117,6 @@ async function placeFurniture(item: Furniture): Promise<void> {
     DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
     if (IsControlJustPressed(0, 38)) confirmed = true;   // E
     if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
-    DisableControlAction(0, 30, true);
-    DisableControlAction(0, 31, true);
-    DisableControlAction(0, 32, true);
-    DisableControlAction(0, 33, true);
-    DisableControlAction(0, 34, true);
-    DisableControlAction(0, 35, true);
-    DisableControlAction(0, 21, true);
-    DisableControlAction(0, 22, true);
-    DisableControlAction(0, 38, true);
-    DisableControlAction(0, 44, true);
-    DisableControlAction(0, 36, true);
-    DisableControlAction(0, 24, true);
-    DisableControlAction(0, 25, true);
-    DisableControlAction(0, 23, true);
     await sleep(0);
   }
 
@@ -137,6 +124,8 @@ async function placeFurniture(item: Furniture): Promise<void> {
   const fheading = GetEntityHeading(preview);
   DeleteEntity(preview);
   SetModelAsNoLongerNeeded(hash);
+  FreezeEntityPosition(PlayerPedId(), false);
+  SetEntityDynamic(PlayerPedId(), true);
 
   if (cancelled) return;
 
@@ -207,6 +196,7 @@ async function manageFurniture(): Promise<void> {
     SetEntityAlpha(preview, 140, false);
     SetEntityCollision(preview, false, false);
     SetEntityHeading(preview, Number(item.heading));
+    FreezeEntityPosition(PlayerPedId(), true);
     let confirmed = false;
     let cancelled = false;
     let heading = Number(item.heading);
@@ -235,26 +225,14 @@ async function manageFurniture(): Promise<void> {
       DrawMarker(0, gx, gy, gz + 0.6, 0, 0, 0, 0, 0, 0, 0.15, 0.15, 0.15, 0, 0, 255, 180, false, false, 2, false, "", "", false);
       if (IsControlJustPressed(0, 38)) confirmed = true;
       if (IsControlJustPressed(0, 177)) cancelled = true;
-      DisableControlAction(0, 30, true);
-      DisableControlAction(0, 31, true);
-      DisableControlAction(0, 32, true);
-      DisableControlAction(0, 33, true);
-      DisableControlAction(0, 34, true);
-      DisableControlAction(0, 35, true);
-      DisableControlAction(0, 21, true);
-      DisableControlAction(0, 22, true);
-      DisableControlAction(0, 38, true);
-      DisableControlAction(0, 44, true);
-      DisableControlAction(0, 36, true);
-      DisableControlAction(0, 24, true);
-      DisableControlAction(0, 25, true);
-      DisableControlAction(0, 23, true);
       await sleep(0);
     }
     const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
     const fh = GetEntityHeading(preview);
     DeleteEntity(preview);
     SetModelAsNoLongerNeeded(hash);
+    FreezeEntityPosition(PlayerPedId(), false);
+    SetEntityDynamic(PlayerPedId(), true);
     if (cancelled) return;
     const ok = await call(EVENTS.updateFurniture, [id, fx, fy, fz, fh]);
     if (!ok) return;
