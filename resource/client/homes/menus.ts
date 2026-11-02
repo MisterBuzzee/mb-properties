@@ -61,7 +61,6 @@ async function openFurnitureCatalog(): Promise<void> {
     notify("No furniture available", "info");
     return;
   }
-  notify(`Opening catalog: ${list.length} items`, "info");
   SetNuiFocus(true, true);
   SendNUIMessage({ action: "open", items: list });
 }
@@ -76,39 +75,59 @@ async function placeFurniture(item: Furniture): Promise<void> {
   }
   if (!HasModelLoaded(hash)) return;
 
-  // The item follows where you look (cursor/camera aim) — it never disappears.
-  const preview = CreateObject(hash, 0, 0, 0, false, false, false);
+  // The item follows where you look (cursor/camera aim) - it never disappears.
+  const [spx = 0, spy = 0, spz = 0] = GetEntityCoords(cache.ped, false);
+  const sph = GetEntityHeading(cache.ped);
+  const spr = (sph * Math.PI) / 180;
+  const preview = CreateObject(hash, spx + Math.sin(spr) * 2, spy + Math.cos(spr) * 2, spz, false, false, false);
   SetEntityAlpha(preview, 140, false);
   SetEntityCollision(preview, false, false);
-  SetEntityHeading(preview, GetEntityHeading(cache.ped));
+  SetEntityHeading(preview, sph);
 
   let confirmed = false;
   let cancelled = false;
-  let heading = GetEntityHeading(cache.ped);
+  let heading = sph;
 
-  const aimPoint = (): { x: number; y: number; z: number } | null => {
-    const cam: any = GetGameplayCamCoord();
-    const rot: any = GetGameplayCamRot(2);
-    const rx = (rot.x * Math.PI) / 180;
-    const rz = (rot.z * Math.PI) / 180;
-    const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-    const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-    const dirZ = Math.sin(rx);
-    const dist = 6.0;
-    const ex = cam.x + dirX * dist;
-    const ey = cam.y + dirY * dist;
-    const ez = cam.z + dirZ * dist;
-    const ray = StartShapeTestRay(cam.x, cam.y, cam.z, ex, ey, ez, 1, cache.ped, 0);
-    const res = GetShapeTestResult(ray) as any;
-    if (res && res[0] === 2 && res[1]) {
-      const c = res[2];
-      return { x: c.x, y: c.y, z: c.z };
+  // Persistent raycast: completes over frames; fallback keeps item visible.
+  let currentRay: number | null = null;
+  let currentPoint: { x: number; y: number; z: number } | null = null;
+
+  const updateAim = (): void => {
+    if (currentRay !== null) {
+      const res = GetShapeTestResult(currentRay) as any;
+      if (res && res[0] === 2) {
+        if (res[1]) {
+          const c = res[2];
+          currentPoint = { x: c.x, y: c.y, z: c.z };
+        } else {
+          // no hit: keep previous or use fallback in front of camera
+        }
+        currentRay = null;
+      }
     }
-    return null;
+    if (currentRay === null) {
+      const cam: any = GetGameplayCamCoord();
+      const rot: any = GetGameplayCamRot(2);
+      const rx = (rot.x * Math.PI) / 180;
+      const rz = (rot.z * Math.PI) / 180;
+      const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
+      const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
+      const dirZ = Math.sin(rx);
+      const dist = 8.0;
+      currentRay = StartShapeTestRay(cam.x, cam.y, cam.z, cam.x + dirX * dist, cam.y + dirY * dist, cam.z + dirZ * dist, 1, cache.ped, 0);
+    }
   };
 
   while (!confirmed && !cancelled) {
-    const pt = aimPoint();
+    updateAim();
+    let pt: { x: number; y: number; z: number } | null = currentPoint;
+    if (!pt) {
+      // fallback: in front of player at ground level
+      const [px = 0, py = 0, pz = 0] = GetEntityCoords(cache.ped, false);
+      const ph = GetEntityHeading(cache.ped);
+      const pr = (ph * Math.PI) / 180;
+      pt = { x: px + Math.sin(pr) * 2, y: py + Math.cos(pr) * 2, z: pz } as { x: number; y: number; z: number };
+    }
     if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
     if (IsControlJustPressed(0, 241)) heading += 15; // scroll up
     if (IsControlJustPressed(0, 242)) heading -= 15; // scroll down
@@ -117,6 +136,7 @@ async function placeFurniture(item: Furniture): Promise<void> {
     if (IsControlJustPressed(0, 177)) cancelled = true;  // Backspace
     await sleep(0);
   }
+
 
   const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
   const fheading = GetEntityHeading(preview);
@@ -196,32 +216,31 @@ async function manageFurniture(): Promise<void> {
     let heading = Number(item.heading);
 
     while (!confirmed && !cancelled) {
-      const aimPoint = (): { x: number; y: number; z: number } | null => {
-        const cam: any = GetGameplayCamCoord();
-        const rot: any = GetGameplayCamRot(2);
-        const rx = (rot.x * Math.PI) / 180;
-        const rz = (rot.z * Math.PI) / 180;
-        const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
-        const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
-        const dirZ = Math.sin(rx);
-        const dist = 6.0;
-        const ex = cam.x + dirX * dist;
-        const ey = cam.y + dirY * dist;
-        const ez = cam.z + dirZ * dist;
-        const ray = StartShapeTestRay(cam.x, cam.y, cam.z, ex, ey, ez, 1, cache.ped, 0);
-        const res = GetShapeTestResult(ray) as any;
-        if (res && res[0] === 2 && res[1]) {
-          const c = res[2];
-          return { x: c.x, y: c.y, z: c.z };
-        }
-        return null;
-      };
-      const pt = aimPoint();
+      let _currentRay: number | null = null;
+      let _currentPoint: { x: number; y: number; z: number } | null = null;
+      // persistent ray handled via closure variables outside; re-init per frame is ok for fallback
+      const cam: any = GetGameplayCamCoord();
+      const rot: any = GetGameplayCamRot(2);
+      const rx = (rot.x * Math.PI) / 180;
+      const rz = (rot.z * Math.PI) / 180;
+      const dirX = -Math.sin(rz) * Math.abs(Math.cos(rx));
+      const dirY = Math.cos(rz) * Math.abs(Math.cos(rx));
+      const dirZ = Math.sin(rx);
+      const dist = 6.0;
+      const ray = StartShapeTestRay(cam.x, cam.y, cam.z, cam.x + dirX * dist, cam.y + dirY * dist, cam.z + dirZ * dist, 1, cache.ped, 0);
+      const res = GetShapeTestResult(ray) as any;
+      let pt: { x: number; y: number; z: number } | null = null;
+      if (res && res[0] === 2 && res[1]) {
+        const c = res[2];
+        pt = { x: c.x, y: c.y, z: c.z };
+      }
+      if (!pt) {
+        pt = { x: Number(item.x), y: Number(item.y), z: Number(item.z) };
+      }
       if (pt) SetEntityCoords(preview, pt.x, pt.y, pt.z, false, false, false, false);
       if (IsDisabledControlJustPressed(0, 241)) heading += 15;
       if (IsDisabledControlJustPressed(0, 242)) heading -= 15;
       SetEntityHeading(preview, heading);
-      const [gx = 0, gy = 0, gz = 0] = GetEntityCoords(preview, true);
       if (IsDisabledControlJustPressed(0, 38)) confirmed = true;
       if (IsDisabledControlJustPressed(0, 177)) cancelled = true;
       await sleep(0);
