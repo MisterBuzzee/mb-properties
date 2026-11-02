@@ -131,6 +131,12 @@ async function buyFurniture(): Promise<void> {
     DisableControlAction(0, 35, true);
     DisableControlAction(0, 21, true);
     DisableControlAction(0, 22, true);
+    DisableControlAction(0, 38, true);
+    DisableControlAction(0, 44, true);
+    DisableControlAction(0, 36, true);
+    DisableControlAction(0, 24, true);
+    DisableControlAction(0, 25, true);
+    DisableControlAction(0, 23, true);
     await sleep(0);
   }
 
@@ -244,6 +250,12 @@ async function manageFurniture(): Promise<void> {
       DisableControlAction(0, 35, true);
       DisableControlAction(0, 21, true);
       DisableControlAction(0, 22, true);
+      DisableControlAction(0, 38, true);
+      DisableControlAction(0, 44, true);
+      DisableControlAction(0, 36, true);
+      DisableControlAction(0, 24, true);
+      DisableControlAction(0, 25, true);
+      DisableControlAction(0, 23, true);
       await sleep(0);
     }
     const [fx = 0, fy = 0, fz = 0] = GetEntityCoords(preview, true);
